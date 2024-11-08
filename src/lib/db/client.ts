@@ -21,13 +21,7 @@ if (!cached) {
 const mongooseCache = cached as { conn: any; promise: any };
 
 export async function connectToDatabase() {
-  console.log("Connecting to MongoDB...", {
-    hasConnection: !!mongooseCache.conn,
-    hasPromise: !!mongooseCache.promise,
-  });
-
   if (mongooseCache.conn) {
-    console.log("Reusing existing connection");
     return mongooseCache.conn;
   }
 
