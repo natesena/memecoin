@@ -17,14 +17,20 @@ interface TokenProcessState {
   contract: string;
   loading: boolean;
   completed: boolean;
-  snapshots: Snapshot[];
   error: string | null;
+}
+
+interface ProcessedToken {
+  name: string;
+  contract: string;
+  snapshots: Snapshot[];
 }
 
 export default function HoldersPage() {
   const [tokenProcessState, setTokenProcessState] = useState<
     TokenProcessState[]
   >([]);
+  const [processedTokens, setProcessedTokens] = useState<ProcessedToken[]>([]);
   const { tokens } = useTokens();
 
   useEffect(() => {
@@ -82,12 +88,15 @@ export default function HoldersPage() {
                     ...stateToken,
                     loading: false,
                     completed: true,
-                    snapshots: snapshots.length > 0 ? snapshots : null,
                     error: null,
                   }
                 : stateToken
             )
           );
+          setProcessedTokens((prevState) => [
+            ...prevState,
+            { name: token.ticker, contract: token.contract, snapshots },
+          ]);
         } catch (error) {
           setTokenProcessState((prevState) =>
             prevState.map((stateToken) =>
@@ -134,25 +143,7 @@ export default function HoldersPage() {
         ))}
       </div>
       <div>
-        <h1>Loaded Coins</h1>
-
-        {tokenProcessState.map(
-          (token) =>
-            token.completed && (
-              <div key={token.contract}>
-                <h3>{token.name}</h3>
-                {token.snapshots.length > 0 ? (
-                  <div>
-                    {token.snapshots.map((snapshot: any) => (
-                      <div key={snapshot._id}>{snapshot.scannedAt}</div>
-                    ))}
-                  </div>
-                ) : (
-                  <div>No snapshots found</div>
-                )}
-              </div>
-            )
-        )}
+        <AllTokensLine tokens={processedTokens} />
       </div>
     </div>
   );

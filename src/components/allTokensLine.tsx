@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,42 +19,25 @@ ChartJS.register(
   Tooltip
 );
 
-interface TokenHistory {
+interface Snapshot {
+  _id: string;
   contract: string;
   ticker: string;
-  snapshots: {
-    holders: string;
-    scannedAt: string;
-  }[];
+  holders: string;
+  scannedAt: Date;
 }
 
-const AllTokensLine = () => {
-  const [tokenHistories, setTokenHistories] = useState<TokenHistory[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ProcessedToken {
+  name: string;
+  contract: string;
+  snapshots: Snapshot[];
+}
 
-  useEffect(() => {
-    async function fetchAllTokenHistories() {
-      try {
-        const response = await fetch("/api/mongo/snapshots");
-        if (!response.ok) throw new Error("Failed to fetch token histories");
-        const data = await response.json();
-        setTokenHistories(data);
-      } catch (error) {
-        console.error("Error fetching token histories:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAllTokenHistories();
-  }, []);
-
-  if (loading) return <div>Loading chart data...</div>;
-
+const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
   // Get all unique dates
   const allDates = [
     ...new Set(
-      tokenHistories.flatMap((token) =>
+      tokens.flatMap((token) =>
         token.snapshots.map(
           (snapshot) => new Date(snapshot.scannedAt).toISOString().split("T")[0]
         )
@@ -65,15 +47,13 @@ const AllTokensLine = () => {
 
   // Calculate the maximum Y value more precisely
   const maxHolders = Math.max(
-    ...tokenHistories.flatMap((token) =>
+    ...tokens.flatMap((token) =>
       token.snapshots.map((snapshot) => {
         const holders = parseInt(snapshot.holders.replace(/,/g, ""));
         return isNaN(holders) ? 0 : holders;
       })
     )
   );
-
-  console.log(maxHolders);
 
   // Add exactly 10% padding to the max value
   const yAxisMax = maxHolders + maxHolders * 0.1;
@@ -89,8 +69,8 @@ const AllTokensLine = () => {
 
   const chartData = {
     labels: allDates,
-    datasets: tokenHistories.map((token, index) => ({
-      label: token.ticker,
+    datasets: tokens.map((token, index) => ({
+      label: token.name,
       data: token.snapshots.map((snapshot) => {
         const holders = parseInt(snapshot.holders.replace(/,/g, ""));
         return {
