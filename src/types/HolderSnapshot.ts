@@ -1,4 +1,5 @@
 export interface HolderSnapshot {
+  _id: string;
   contract: string;
   ticker: string;
   name: string;

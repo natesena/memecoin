@@ -1,4 +1,5 @@
 "use client";
+import "chartjs-adapter-date-fns";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -7,6 +8,7 @@ import {
   LineElement,
   Title,
   Tooltip,
+  TimeScale,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
@@ -16,47 +18,36 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
-  Tooltip
+  Tooltip,
+  TimeScale
 );
-
-interface Snapshot {
-  _id: string;
-  contract: string;
-  ticker: string;
-  holders: string;
-  scannedAt: Date;
-}
+import { TokenDetails } from "@/types/TokenDetails";
 
 interface ProcessedToken {
   name: string;
   contract: string;
-  snapshots: Snapshot[];
+  snapshots: TokenDetails[];
 }
 
-const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
-  // Get all unique dates
+interface AllTokensLineProps {
+  tokens: ProcessedToken[];
+  maxHolders: number;
+}
+
+const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
+  // Get all unique timestamps and find the earliest date
   const allDates = [
     ...new Set(
       tokens.flatMap((token) =>
-        token.snapshots.map(
-          (snapshot) => new Date(snapshot.scannedAt).toISOString().split("T")[0]
-        )
+        token.snapshots.map((snapshot) => snapshot.createdAt)
       )
     ),
   ].sort();
 
-  // Calculate the maximum Y value more precisely
-  const maxHolders = Math.max(
-    ...tokens.flatMap((token) =>
-      token.snapshots.map((snapshot) => {
-        const holders = parseInt(snapshot.holders.replace(/,/g, ""));
-        return isNaN(holders) ? 0 : holders;
-      })
-    )
-  );
+  const minDate = allDates.length > 0 ? allDates[0] : new Date().toISOString();
 
-  // Add exactly 10% padding to the max value
-  const yAxisMax = maxHolders + maxHolders * 0.1;
+  // Remove the maxHolders calculation block and just use the prop
+  const yAxisMax = Math.ceil(maxHolders * 1.1);
 
   const colors = [
     "rgb(75, 192, 192)",
@@ -67,17 +58,22 @@ const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
     "rgb(255, 159, 64)",
   ];
 
+  // Add this before the chart data setup
+  tokens.forEach((token) => {
+    token.snapshots.forEach((snapshot) => {
+      const date = new Date(snapshot.createdAt);
+      if (date.getTime() === 0 || isNaN(date.getTime())) {
+      }
+    });
+  });
+
   const chartData = {
-    labels: allDates,
     datasets: tokens.map((token, index) => ({
       label: token.name,
-      data: token.snapshots.map((snapshot) => {
-        const holders = parseInt(snapshot.holders.replace(/,/g, ""));
-        return {
-          x: new Date(snapshot.scannedAt).toISOString().split("T")[0],
-          y: isNaN(holders) ? 0 : holders,
-        };
-      }),
+      data: token.snapshots.map((snapshot) => ({
+        x: new Date(snapshot.createdAt).getTime(),
+        y: Number(snapshot.holders.replace(/,/g, "")),
+      })),
       borderColor: colors[index % colors.length],
       backgroundColor: colors[index % colors.length]
         .replace("rgb", "rgba")
@@ -86,6 +82,8 @@ const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
       pointRadius: 0,
     })),
   };
+
+  console.log("Chart Data:", chartData);
 
   const options = {
     responsive: true,
@@ -103,17 +101,35 @@ const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
     },
     scales: {
       x: {
-        type: "category" as const,
+        type: "time" as const,
+        time: {
+          displayFormats: {
+            millisecond: "HH:mm:ss.SSS",
+            second: "HH:mm:ss",
+            minute: "HH:mm",
+            hour: "MMM d, HH:mm",
+            day: "MMM d",
+            week: "MMM d",
+            month: "MMM yyyy",
+            quarter: "MMM yyyy",
+            year: "yyyy",
+          },
+          tooltipFormat: "MMM d, HH:mm",
+        },
         title: {
           display: true,
-          text: "Date",
+          text: "Date & Time",
         },
         ticks: {
           maxRotation: 45,
           minRotation: 45,
+          autoSkip: true,
+          maxTicksLimit: 20,
         },
+        min: new Date(minDate).getTime(),
       },
       y: {
+        type: "linear" as const,
         min: 0,
         max: yAxisMax,
         title: {
@@ -121,8 +137,8 @@ const AllTokensLine = ({ tokens }: { tokens: ProcessedToken[] }) => {
           text: "Number of Holders",
         },
         ticks: {
-          callback: function (value: number) {
-            return value.toLocaleString();
+          callback: function (tickValue: number | string) {
+            return Number(tickValue).toLocaleString();
           },
         },
       },

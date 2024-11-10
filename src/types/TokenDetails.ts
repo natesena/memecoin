@@ -1,10 +1,11 @@
 export interface TokenDetails {
+  _id: string;
   contract: string;
-  name?: string;
-  ticker?: string;
-  holders?: string;
-  holdersOver10?: string;
-  marketCap?: string;
+  name: string;
+  ticker: string;
+  holders: string;
+  holdersOver10: string;
+  marketCap: string;
   marketCapPerHolder?: string;
   marketCapPerHolderOver10?: string;
   openTokenAccounts?: string;

@@ -3,14 +3,7 @@ import TokenHolders from "@/components/tokenholders";
 import AllTokensLine from "@/components/allTokensLine";
 import { useTokens } from "@/context/TokenContext";
 import { useEffect, useState } from "react";
-
-interface Snapshot {
-  _id: string;
-  contract: string;
-  ticker: string;
-  holders: string;
-  scannedAt: Date;
-}
+import { TokenDetails } from "@/types/TokenDetails";
 
 interface TokenProcessState {
   name: string;
@@ -23,7 +16,7 @@ interface TokenProcessState {
 interface ProcessedToken {
   name: string;
   contract: string;
-  snapshots: Snapshot[];
+  snapshots: TokenDetails[];
 }
 
 export default function HoldersPage() {
@@ -31,6 +24,7 @@ export default function HoldersPage() {
     TokenProcessState[]
   >([]);
   const [processedTokens, setProcessedTokens] = useState<ProcessedToken[]>([]);
+  const [maxHolders, setMaxHolders] = useState<number>(0);
   const { tokens } = useTokens();
 
   useEffect(() => {
@@ -61,6 +55,8 @@ export default function HoldersPage() {
 
     // Create an async function to fetch data for all tokens
     const fetchTokenData = async () => {
+      let globalMaxHolders = 0;
+
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
@@ -79,8 +75,39 @@ export default function HoldersPage() {
           if (!response.ok) {
             throw new Error(`Failed to fetch history for ${token.ticker}`);
           }
-          const snapshots = await response.json();
-          console.log("found", snapshots.length, "snapshots");
+          const data = await response.json();
+
+          if ("error" in data) {
+            setTokenProcessState((prevState) =>
+              prevState.map((stateToken) =>
+                stateToken.contract === token.contract
+                  ? {
+                      ...stateToken,
+                      loading: false,
+                      completed: false,
+                      error: data.error,
+                    }
+                  : stateToken
+              )
+            );
+            continue; // Skip to next token
+          }
+
+          // Now we know data is TokenDetails[]
+          const tokenDetailsArray: TokenDetails[] = data;
+
+          // Find max holders across all snapshots
+          tokenDetailsArray.forEach((snapshot) => {
+            const holders = parseInt(
+              snapshot.holders?.replace(/,/g, "") || "0"
+            );
+            if (!isNaN(holders) && holders > globalMaxHolders) {
+              globalMaxHolders = holders;
+            }
+          });
+
+          setMaxHolders(globalMaxHolders);
+
           setTokenProcessState((prevState) =>
             prevState.map((stateToken) =>
               stateToken.contract === token.contract
@@ -93,10 +120,28 @@ export default function HoldersPage() {
                 : stateToken
             )
           );
-          setProcessedTokens((prevState) => [
-            ...prevState,
-            { name: token.ticker, contract: token.contract, snapshots },
-          ]);
+
+          // Unnest the data when setting processed tokens
+          setProcessedTokens((prevState) => {
+            const tokenExists = prevState.some(
+              (t) => t.contract === token.contract
+            );
+
+            if (tokenExists) {
+              return prevState;
+            }
+
+            return [
+              ...prevState,
+              {
+                name: token.ticker || "",
+                contract: token.contract,
+                snapshots: tokenDetailsArray,
+              },
+            ];
+          });
+
+          // Calculate max holders for this token
         } catch (error) {
           setTokenProcessState((prevState) =>
             prevState.map((stateToken) =>
@@ -129,21 +174,36 @@ export default function HoldersPage() {
       // Could add abort controller here if needed
     };
   }, [tokens]);
-  {
-    console.log("tokenProcessState:", tokenProcessState);
-  }
+
   return (
     <div>
       <div className="h-[25vh] overflow-y-auto">
         {tokenProcessState.map((token) => (
           <div key={token.contract}>
             {token.name} -{" "}
-            {token.completed ? "done" : token.loading ? "loading" : "queued"}
+            {token.completed
+              ? "done"
+              : token.loading
+              ? "loading"
+              : token.error
+              ? "error"
+              : "queued"}
           </div>
         ))}
       </div>
       <div>
-        <AllTokensLine tokens={processedTokens} />
+        <h1>Processed Tokens</h1>
+        {/* {processedTokens.map((token) => (
+          <div key={token.contract}>
+            <h1>{token.name}</h1>
+            {token.snapshots.map((snapshot, index) => (
+              <p key={index}>{JSON.stringify(snapshot, null, 2)}</p>
+            ))}
+          </div>
+        ))} */}
+      </div>
+      <div>
+        <AllTokensLine tokens={processedTokens} maxHolders={maxHolders} />
       </div>
     </div>
   );
