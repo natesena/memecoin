@@ -75,7 +75,9 @@ export default function TokensLayout({
           }}
         >
           <TokenList tokens={tokens} />
-          <div className="flex-1 w-[calc(100%-20rem-1rem)]">{children}</div>
+          <div className="flex-1 w-[calc(100%-20rem-1rem)] overflow-y-auto max-h-[calc(100vh-8rem)]">
+            {children}
+          </div>
         </TokenContext.Provider>
       </div>
     </div>

@@ -1,5 +1,4 @@
 "use client";
-import { useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,6 +10,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import type { TokenDetails } from "@/types/TokenDetails";
 
 ChartJS.register(
   CategoryScale,
@@ -21,23 +21,37 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-import type { TokenDetails } from "@/types/TokenDetails";
 
-interface HoldersLineProps {
+interface MetricsChartProps {
   snapshots: TokenDetails[];
+  metric: keyof TokenDetails;
+  label: string;
   ticker: string;
 }
 
-const HoldersLine = ({ snapshots, ticker }: HoldersLineProps) => {
+const MetricsChart = ({
+  snapshots,
+  metric,
+  label,
+  ticker,
+}: MetricsChartProps) => {
+  console.log("Snapshots:", snapshots);
+  const formatValue = (value: string) => {
+    // Remove currency symbol, commas, and percentage signs
+    const cleanValue = value.replace(/[$,%]/g, "");
+    // Convert to number
+    return parseFloat(cleanValue);
+  };
+
   const chartData = {
     labels: snapshots.map((snapshot) =>
       new Date(snapshot.createdAt).toLocaleDateString()
     ),
     datasets: [
       {
-        label: `${ticker} Holders`,
+        label: `${ticker} ${label}`,
         data: snapshots.map((snapshot) =>
-          parseInt(snapshot.holders.replace(/,/g, ""))
+          formatValue(snapshot[metric] as string)
         ),
         borderColor: "rgb(75, 192, 192)",
         backgroundColor: "rgba(75, 192, 192, 0.5)",
@@ -55,7 +69,7 @@ const HoldersLine = ({ snapshots, ticker }: HoldersLineProps) => {
       },
       title: {
         display: true,
-        text: `${ticker} Holder Count Over Time`,
+        text: `${ticker} ${label} Over Time`,
       },
     },
     scales: {
@@ -63,7 +77,17 @@ const HoldersLine = ({ snapshots, ticker }: HoldersLineProps) => {
         beginAtZero: true,
         ticks: {
           callback: function (tickValue: number | string) {
-            return Number(tickValue).toLocaleString();
+            const value = Number(tickValue);
+            if (metric === "holdersToOpenAccountsRatio") {
+              return value.toLocaleString() + "%";
+            } else if (
+              metric === "marketCap" ||
+              metric === "marketCapPerHolder" ||
+              metric === "marketCapPerHolderOver10"
+            ) {
+              return "$" + value.toLocaleString();
+            }
+            return value.toLocaleString();
           },
         },
       },
@@ -71,10 +95,10 @@ const HoldersLine = ({ snapshots, ticker }: HoldersLineProps) => {
   };
 
   return (
-    <div className="w-full h-[400px] p-4">
+    <div className="w-full h-[300px] p-4 border rounded-lg">
       <Line data={chartData} options={options} />
     </div>
   );
 };
 
-export default HoldersLine;
+export default MetricsChart;

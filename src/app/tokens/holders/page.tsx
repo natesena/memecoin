@@ -4,6 +4,7 @@ import AllTokensLine from "@/components/allTokensLine";
 import { useTokens } from "@/context/TokenContext";
 import { useEffect, useState } from "react";
 import { TokenDetails } from "@/types/TokenDetails";
+import { db } from "@/lib/db";
 
 interface TokenProcessState {
   name: string;
@@ -52,23 +53,40 @@ export default function HoldersPage() {
         error: null,
       }))
     );
+    const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-    // Create an async function to fetch data for all tokens
     const fetchTokenData = async () => {
       let globalMaxHolders = 0;
 
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
-        setTokenProcessState((prevState) =>
-          prevState.map((stateToken) =>
-            stateToken.contract === token.contract
-              ? { ...stateToken, loading: true }
-              : stateToken
-          )
-        );
-
         try {
+          // Check cache first
+          const cachedData = await db.tokenHistory
+            .where("contract")
+            .equals(token.contract)
+            .first();
+
+          // Use cache if it exists and is not expired
+          if (
+            cachedData &&
+            Date.now() - cachedData.timestamp < CACHE_DURATION
+          ) {
+            console.log(`Using cached data for ${token.ticker}`);
+            updateTokenState(token, cachedData.data);
+            continue;
+          }
+
+          // If no cache or expired, fetch from API
+          setTokenProcessState((prevState) =>
+            prevState.map((stateToken) =>
+              stateToken.contract === token.contract
+                ? { ...stateToken, loading: true }
+                : stateToken
+            )
+          );
+
           const response = await fetch(
             `/api/mongo/token/${token.contract}/history`
           );
@@ -78,70 +96,18 @@ export default function HoldersPage() {
           const data = await response.json();
 
           if ("error" in data) {
-            setTokenProcessState((prevState) =>
-              prevState.map((stateToken) =>
-                stateToken.contract === token.contract
-                  ? {
-                      ...stateToken,
-                      loading: false,
-                      completed: false,
-                      error: data.error,
-                    }
-                  : stateToken
-              )
-            );
-            continue; // Skip to next token
+            throw new Error(data.error);
           }
 
-          // Now we know data is TokenDetails[]
-          const tokenDetailsArray: TokenDetails[] = data;
-
-          // Find max holders across all snapshots
-          tokenDetailsArray.forEach((snapshot) => {
-            const holders = parseInt(
-              snapshot.holders?.replace(/,/g, "") || "0"
-            );
-            if (!isNaN(holders) && holders > globalMaxHolders) {
-              globalMaxHolders = holders;
-            }
+          // Cache the new data
+          await db.tokenHistory.put({
+            contract: token.contract,
+            data: data,
+            timestamp: Date.now(),
           });
 
-          setMaxHolders(globalMaxHolders);
-
-          setTokenProcessState((prevState) =>
-            prevState.map((stateToken) =>
-              stateToken.contract === token.contract
-                ? {
-                    ...stateToken,
-                    loading: false,
-                    completed: true,
-                    error: null,
-                  }
-                : stateToken
-            )
-          );
-
-          // Unnest the data when setting processed tokens
-          setProcessedTokens((prevState) => {
-            const tokenExists = prevState.some(
-              (t) => t.contract === token.contract
-            );
-
-            if (tokenExists) {
-              return prevState;
-            }
-
-            return [
-              ...prevState,
-              {
-                name: token.ticker || "",
-                contract: token.contract,
-                snapshots: tokenDetailsArray,
-              },
-            ];
-          });
-
-          // Calculate max holders for this token
+          // Update state with the new data
+          updateTokenState(token, data);
         } catch (error) {
           setTokenProcessState((prevState) =>
             prevState.map((stateToken) =>
@@ -165,6 +131,51 @@ export default function HoldersPage() {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
+    };
+
+    const updateTokenState = (
+      token: any,
+      tokenDetailsArray: TokenDetails[]
+    ) => {
+      // Update max holders
+      if (tokenDetailsArray.length >= 2) {
+        tokenDetailsArray.forEach((snapshot) => {
+          const holders = parseInt(snapshot.holders?.replace(/,/g, "") || "0");
+          if (!isNaN(holders)) {
+            setMaxHolders((prev) => Math.max(prev, holders));
+          }
+        });
+      }
+
+      // Update token process state
+      setTokenProcessState((prevState) =>
+        prevState.map((stateToken) =>
+          stateToken.contract === token.contract
+            ? {
+                ...stateToken,
+                loading: false,
+                completed: true,
+                error: null,
+              }
+            : stateToken
+        )
+      );
+
+      // Update processed tokens
+      setProcessedTokens((prevState) => {
+        const tokenExists = prevState.some(
+          (t) => t.contract === token.contract
+        );
+        if (tokenExists) return prevState;
+        return [
+          ...prevState,
+          {
+            name: token.ticker || "",
+            contract: token.contract,
+            snapshots: tokenDetailsArray,
+          },
+        ];
+      });
     };
 
     fetchTokenData();
