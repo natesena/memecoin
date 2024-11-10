@@ -108,6 +108,11 @@ export default function HoldersPage() {
 
           // Update state with the new data
           updateTokenState(token, data);
+
+          // Only add delay between requests if we actually made an API call
+          if (i < tokens.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
         } catch (error) {
           setTokenProcessState((prevState) =>
             prevState.map((stateToken) =>
@@ -124,11 +129,6 @@ export default function HoldersPage() {
                 : stateToken
             )
           );
-        }
-
-        // Add delay between requests
-        if (i < tokens.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
     };
