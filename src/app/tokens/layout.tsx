@@ -2,6 +2,7 @@
 import { TokenList } from "@/components/tokenList";
 import { useEffect, useState } from "react";
 import { TokenContext } from "@/context/TokenContext";
+import { TokenProcessState } from "@/types/TokenProcessState";
 
 interface UniqueToken {
   _id: string;
@@ -18,6 +19,9 @@ export default function TokensLayout({
   const [selectedToken, setSelectedToken] = useState<UniqueToken | null>(null);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [tokenProcessState, setTokenProcessState] = useState<
+    TokenProcessState[]
+  >([]);
 
   useEffect(() => {
     async function fetchTokens() {
@@ -26,6 +30,16 @@ export default function TokensLayout({
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         setTokens(data);
+        // Initialize process state for each token
+        setTokenProcessState(
+          data.map((token: UniqueToken) => ({
+            name: token.ticker,
+            contract: token.contract,
+            loading: false,
+            completed: false,
+            error: null,
+          }))
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch tokens");
       } finally {
@@ -72,9 +86,11 @@ export default function TokensLayout({
             tokens,
             selectedToken,
             setSelectedToken: (token) => setSelectedToken(token as any),
+            tokenProcessState,
+            setTokenProcessState,
           }}
         >
-          <TokenList tokens={tokens} />
+          <TokenList tokenProcessState={tokenProcessState} />
           <div className="flex-1 w-[calc(100%-20rem-1rem)] overflow-y-auto max-h-[calc(100vh-8rem)]">
             {children}
           </div>

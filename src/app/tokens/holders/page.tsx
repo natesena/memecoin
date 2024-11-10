@@ -5,14 +5,7 @@ import { useTokens } from "@/context/TokenContext";
 import { useEffect, useState } from "react";
 import { TokenDetails } from "@/types/TokenDetails";
 import { db } from "@/lib/db";
-
-interface TokenProcessState {
-  name: string;
-  contract: string;
-  loading: boolean;
-  completed: boolean;
-  error: string | null;
-}
+import { TokenProcessState } from "@/types/TokenProcessState";
 
 interface ProcessedToken {
   name: string;
@@ -27,19 +20,6 @@ export default function HoldersPage() {
   const [processedTokens, setProcessedTokens] = useState<ProcessedToken[]>([]);
   const [maxHolders, setMaxHolders] = useState<number>(0);
   const { tokens } = useTokens();
-
-  useEffect(() => {
-    setTokenProcessState(
-      tokens.map((token) => ({
-        name: token.ticker,
-        contract: token.contract,
-        loading: false,
-        completed: false,
-        snapshots: [],
-        error: null,
-      }))
-    );
-  }, [tokens]);
 
   useEffect(() => {
     // Reset state when tokens change
@@ -73,7 +53,6 @@ export default function HoldersPage() {
             cachedData &&
             Date.now() - cachedData.timestamp < CACHE_DURATION
           ) {
-            console.log(`Using cached data for ${token.ticker}`);
             updateTokenState(token, cachedData.data);
             continue;
           }
@@ -179,40 +158,11 @@ export default function HoldersPage() {
     };
 
     fetchTokenData();
-
-    // Cleanup function to handle component unmounting
-    return () => {
-      // Could add abort controller here if needed
-    };
+    return () => {};
   }, [tokens]);
 
   return (
     <div>
-      <div className="h-[25vh] overflow-y-auto">
-        {tokenProcessState.map((token) => (
-          <div key={token.contract}>
-            {token.name} -{" "}
-            {token.completed
-              ? "done"
-              : token.loading
-              ? "loading"
-              : token.error
-              ? "error"
-              : "queued"}
-          </div>
-        ))}
-      </div>
-      <div>
-        <h1>Processed Tokens</h1>
-        {/* {processedTokens.map((token) => (
-          <div key={token.contract}>
-            <h1>{token.name}</h1>
-            {token.snapshots.map((snapshot, index) => (
-              <p key={index}>{JSON.stringify(snapshot, null, 2)}</p>
-            ))}
-          </div>
-        ))} */}
-      </div>
       <div>
         <AllTokensLine tokens={processedTokens} maxHolders={maxHolders} />
       </div>

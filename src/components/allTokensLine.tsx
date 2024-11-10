@@ -11,6 +11,7 @@ import {
   TimeScale,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { useState } from "react";
 
 ChartJS.register(
   CategoryScale,
@@ -35,6 +36,8 @@ interface AllTokensLineProps {
 }
 
 const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
+  const [activeToken, setActiveToken] = useState<string | null>(null);
+
   // Get all unique timestamps and find the earliest date
   const allDates = [
     ...new Set(
@@ -79,11 +82,10 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
         .replace("rgb", "rgba")
         .replace(")", ", 0.5)"),
       tension: 0.1,
-      pointRadius: 0,
+      pointRadius: 0, // Increase the point size slightly
+      hoverRadius: 6, // Make the hover detection area larger
     })),
   };
-
-  console.log("Chart Data:", chartData);
 
   const options = {
     responsive: true,
@@ -98,6 +100,24 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
           size: 16,
         },
       },
+      tooltip: {
+        enabled: true,
+        mode: "dataset", // This mode checks the closest dataset based on x-axis positioning.
+        intersect: false, // Allows the tooltip to appear when hovering over the line segment.
+        callbacks: {
+          label: (context: any) => {
+            const token = tokens[context.datasetIndex];
+            return `${token.name}: ${Number(
+              context.parsed.y
+            ).toLocaleString()} holders`;
+          },
+        },
+      },
+    },
+    interaction: {
+      mode: "index", // Consistent with the tooltip mode.
+      axis: "xy", // This will help detect the line regardless of axis positioning.
+      intersect: false, // Allows interaction with the line itself, not just points.
     },
     scales: {
       x: {
@@ -144,6 +164,10 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
       },
     },
     maintainAspectRatio: false,
+    hover: {
+      mode: "nearest",
+      intersect: false,
+    },
   };
 
   return (
