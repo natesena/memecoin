@@ -35,12 +35,12 @@ const MetricsChart = ({
   label,
   ticker,
 }: MetricsChartProps) => {
-  console.log("Snapshots:", snapshots);
-  const formatValue = (value: string) => {
+  const formatValue = (value: string | null | undefined) => {
+    if (!value) return 0;
     // Remove currency symbol, commas, and percentage signs
     const cleanValue = value.replace(/[$,%]/g, "");
     // Convert to number
-    return parseFloat(cleanValue);
+    return parseFloat(cleanValue) || 0;
   };
 
   const chartData = {

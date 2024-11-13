@@ -23,6 +23,14 @@ export default function TokensLayout({
     TokenProcessState[]
   >([]);
 
+  // Check if authorized before showing the layout
+  const isAuthorized = document.cookie.includes(
+    "memecoin_terminal_isAuthorized=true"
+  );
+  if (!isAuthorized) {
+    return <div>{children}</div>;
+  }
+
   useEffect(() => {
     async function fetchTokens() {
       try {
@@ -49,11 +57,10 @@ export default function TokensLayout({
     fetchTokens();
   }, []);
 
-  // Return a loading skeleton that matches the final layout
+  // Return a loading skeleton that matches the final layout just for ~aesthetics
   if (loading) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Tokens</h1>
         <div className="flex gap-4">
           <div className="w-80 animate-pulse">
             <div className="h-20 bg-gray-200 rounded-lg mb-4"></div>
@@ -90,7 +97,9 @@ export default function TokensLayout({
             setTokenProcessState,
           }}
         >
-          <TokenList tokenProcessState={tokenProcessState} />
+          <aside className="w-80 h-[calc(100vh-8rem)] overflow-y-auto border-r pr-4">
+            <TokenList tokenProcessState={tokenProcessState} />
+          </aside>
           <div className="flex-1 w-[calc(100%-20rem-1rem)] overflow-y-auto max-h-[calc(100vh-8rem)]">
             {children}
           </div>

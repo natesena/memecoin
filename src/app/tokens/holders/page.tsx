@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { TokenDetails } from "@/types/TokenDetails";
 import { db } from "@/lib/db";
 import { TokenProcessState } from "@/types/TokenProcessState";
+import { metrics } from "@/lib/metrics/metrics";
+import { MetricKey } from "@/types/MetricKey";
 
 interface ProcessedToken {
   name: string;
@@ -18,8 +20,9 @@ export default function HoldersPage() {
     TokenProcessState[]
   >([]);
   const [processedTokens, setProcessedTokens] = useState<ProcessedToken[]>([]);
-  const [maxHolders, setMaxHolders] = useState<number>(0);
+  const [maxValue, setMaxValue] = useState<number>(0);
   const { tokens } = useTokens();
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>("holders");
 
   useEffect(() => {
     // Reset state when tokens change
@@ -121,7 +124,7 @@ export default function HoldersPage() {
         tokenDetailsArray.forEach((snapshot) => {
           const holders = parseInt(snapshot.holders?.replace(/,/g, "") || "0");
           if (!isNaN(holders)) {
-            setMaxHolders((prev) => Math.max(prev, holders));
+            setMaxValue((prev) => Math.max(prev, holders));
           }
         });
       }
@@ -162,9 +165,28 @@ export default function HoldersPage() {
   }, [tokens]);
 
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {metrics.map((metric) => (
+          <button
+            key={metric.key}
+            onClick={() => setSelectedMetric(metric.key)}
+            className={`px-4 py-2 rounded transition-colors ${
+              selectedMetric === metric.key
+                ? "bg-white text-black border border-black"
+                : "bg-black text-white hover:bg-gray-800"
+            }`}
+          >
+            {metric.label}
+          </button>
+        ))}
+      </div>
       <div>
-        <AllTokensLine tokens={processedTokens} maxHolders={maxHolders} />
+        <AllTokensLine
+          tokens={processedTokens}
+          metric={selectedMetric}
+          label={metrics.find((m) => m.key === selectedMetric)?.label || ""}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 "use client";
+import { useState, useEffect } from "react";
+import { Line } from "react-chartjs-2";
 import "chartjs-adapter-date-fns";
 import {
   Chart as ChartJS,
@@ -10,8 +12,6 @@ import {
   Tooltip,
   TimeScale,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
-import { useState } from "react";
 
 ChartJS.register(
   CategoryScale,
@@ -23,6 +23,9 @@ ChartJS.register(
   TimeScale
 );
 import { TokenDetails } from "@/types/TokenDetails";
+import { metrics } from "@/lib/metrics/metrics";
+import { MetricKey } from "@/types/MetricKey";
+import { formatTokenDetailsSnapshot } from "@/utils/formatTokenDetailsSnapshot";
 
 interface ProcessedToken {
   name: string;
@@ -32,11 +35,66 @@ interface ProcessedToken {
 
 interface AllTokensLineProps {
   tokens: ProcessedToken[];
-  maxHolders: number;
+  metric: MetricKey;
+  label: string;
 }
 
-const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
-  const [activeToken, setActiveToken] = useState<string | null>(null);
+const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
+  const maxValueForMetric =
+    metrics[metrics.findIndex((m) => m.key === metric)]?.maxValue || 0;
+  const [activeMaxValue, setActiveMaxValue] = useState<number>(
+    maxValueForMetric || 0
+  );
+
+  useEffect(() => {
+    console.log(tokens.length, "tokens");
+    let maxValueInSnapshots = 0;
+    let tokenWithMaxValue = "";
+
+    // Find max value and corresponding token
+    tokens.forEach((token) => {
+      if (token.snapshots.length >= 2) {
+        // Update each snapshot's metrics with properly formatted values
+        token.snapshots = token.snapshots.map((snapshot) => {
+          const formattedSnapshot = { ...snapshot };
+          // Only format metrics that are actual metric keys
+          metrics.forEach(({ key }) => {
+            const value = snapshot[key as keyof TokenDetails];
+            if (value !== undefined) {
+              (formattedSnapshot as any)[key] = formatTokenDetailsSnapshot(
+                key,
+                String(value)
+              );
+            }
+          });
+          return formattedSnapshot;
+        });
+
+        // Now check for max values using the formatted values
+        token.snapshots.forEach((snapshot) => {
+          const value = Number(snapshot[metric]);
+          if (value > maxValueInSnapshots) {
+            maxValueInSnapshots = value;
+            tokenWithMaxValue = token.name;
+          }
+        });
+      }
+    });
+
+    console.log(
+      `Max value ${maxValueInSnapshots} found in token: ${tokenWithMaxValue}`
+    );
+
+    // Recalculate max value
+    const maxValue = Math.min(maxValueForMetric, maxValueInSnapshots);
+
+    if (maxValue > activeMaxValue) {
+      console.log(metric, tokenWithMaxValue, maxValueInSnapshots, maxValue);
+      setActiveMaxValue(maxValueInSnapshots);
+    } else {
+      setActiveMaxValue(maxValue);
+    }
+  }, [tokens, metric]);
 
   // Get all unique timestamps and find the earliest date
   const allDates = [
@@ -50,7 +108,7 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
   const minDate = allDates.length > 0 ? allDates[0] : new Date().toISOString();
 
   // Remove the maxHolders calculation block and just use the prop
-  const yAxisMax = Math.ceil(maxHolders * 1.1);
+  const yAxisMax = Math.ceil(activeMaxValue * 1.1);
 
   const colors = [
     "rgb(75, 192, 192)",
@@ -75,15 +133,15 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
       label: token.name,
       data: token.snapshots.map((snapshot) => ({
         x: new Date(snapshot.createdAt).getTime(),
-        y: Number(snapshot.holders.replace(/,/g, "")),
+        y: Number(String(snapshot[metric]).replace(/[$,%]/g, "")),
       })),
       borderColor: colors[index % colors.length],
       backgroundColor: colors[index % colors.length]
         .replace("rgb", "rgba")
         .replace(")", ", 0.5)"),
       tension: 0.1,
-      pointRadius: 0, // Increase the point size slightly
-      hoverRadius: 6, // Make the hover detection area larger
+      pointRadius: 0,
+      hoverRadius: 6,
     })),
   };
 
@@ -95,7 +153,7 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
       },
       title: {
         display: true,
-        text: "Token Holders Over Time",
+        text: label,
         font: {
           size: 16,
         },
@@ -169,9 +227,10 @@ const AllTokensLine = ({ tokens, maxHolders }: AllTokensLineProps) => {
       intersect: false,
     },
   };
-
+  console.log(metric);
   return (
     <div className="w-full h-[600px] p-4">
+      <h1>{metric}</h1>
       <Line data={chartData} options={options} />
     </div>
   );
