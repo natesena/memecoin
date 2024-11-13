@@ -29,7 +29,7 @@ export async function GET() {
     return NextResponse.json(snapshots);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch token snapshots" },
+      { error: `Failed to fetch token snapshots: ${error}` },
       { status: 500 }
     );
   }

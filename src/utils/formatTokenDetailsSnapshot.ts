@@ -7,7 +7,7 @@ import { MetricKey } from "@/types/MetricKey";
 // marketCapPerHolderOver10: $886.06
 
 export const formatTokenDetailsSnapshot = (
-  metricKey: string,
+  metricKey: MetricKey,
   value: string
 ): number => {
   // Remove any commas and $ signs first

@@ -23,14 +23,6 @@ export default function TokensLayout({
     TokenProcessState[]
   >([]);
 
-  // Check if authorized before showing the layout
-  const isAuthorized = document.cookie.includes(
-    "memecoin_terminal_isAuthorized=true"
-  );
-  if (!isAuthorized) {
-    return <div>{children}</div>;
-  }
-
   useEffect(() => {
     async function fetchTokens() {
       try {
@@ -38,7 +30,6 @@ export default function TokensLayout({
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         setTokens(data);
-        // Initialize process state for each token
         setTokenProcessState(
           data.map((token: UniqueToken) => ({
             name: token.ticker,
@@ -56,6 +47,13 @@ export default function TokensLayout({
     }
     fetchTokens();
   }, []);
+
+  const isAuthorized = document.cookie.includes(
+    "memecoin_terminal_isAuthorized=true"
+  );
+  if (!isAuthorized) {
+    return <div>{children}</div>;
+  }
 
   // Return a loading skeleton that matches the final layout just for ~aesthetics
   if (loading) {
@@ -92,7 +90,7 @@ export default function TokensLayout({
           value={{
             tokens,
             selectedToken,
-            setSelectedToken: (token) => setSelectedToken(token as any),
+            setSelectedToken: (token) => setSelectedToken(token as UniqueToken),
             tokenProcessState,
             setTokenProcessState,
           }}

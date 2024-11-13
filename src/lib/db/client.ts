@@ -1,8 +1,17 @@
 import mongoose from "mongoose";
 
+// Define interface for mongoose cache
+interface MongooseCache {
+  conn: mongoose.Connection | null;
+  promise: Promise<mongoose.Connection> | null;
+}
+
 // Add this type declaration at the top of the file
 declare global {
-  var mongoose: { conn: any; promise: any } | undefined;
+  // Use let instead of var, and provide proper typing
+  let mongoose:
+    | { conn: MongooseCache | null; promise: MongooseCache | null }
+    | undefined;
 }
 
 if (!process.env.MONGODB_URI) {
@@ -17,8 +26,8 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-// Add this type assertion
-const mongooseCache = cached as { conn: any; promise: any };
+// Add proper typing for the cache
+const mongooseCache = cached as MongooseCache;
 
 export async function connectToDatabase() {
   if (mongooseCache.conn) {
@@ -35,7 +44,7 @@ export async function connectToDatabase() {
       .connect(MONGODB_URI, opts)
       .then((mongoose) => {
         console.log("Successfully connected to MongoDB");
-        return mongoose;
+        return mongoose.connection;
       });
   }
 

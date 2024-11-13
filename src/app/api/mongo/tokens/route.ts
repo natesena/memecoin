@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json(uniqueTokens);
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch tokens" },
+      { error: `Failed to fetch tokens: ${error}` },
       { status: 500 }
     );
   }

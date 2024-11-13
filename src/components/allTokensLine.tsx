@@ -39,6 +39,13 @@ interface AllTokensLineProps {
   label: string;
 }
 
+interface TooltipContext {
+  datasetIndex: number;
+  parsed: {
+    y: number;
+  };
+}
+
 const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
   const maxValueForMetric =
     metrics[metrics.findIndex((m) => m.key === metric)]?.maxValue || 0;
@@ -61,10 +68,8 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
           metrics.forEach(({ key }) => {
             const value = snapshot[key as keyof TokenDetails];
             if (value !== undefined) {
-              (formattedSnapshot as any)[key] = formatTokenDetailsSnapshot(
-                key,
-                String(value)
-              );
+              (formattedSnapshot as Record<string, unknown>)[key] =
+                formatTokenDetailsSnapshot(key, String(value));
             }
           });
           return formattedSnapshot;
@@ -94,7 +99,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
     } else {
       setActiveMaxValue(maxValue);
     }
-  }, [tokens, metric]);
+  }, [tokens, metric, activeMaxValue, maxValueForMetric]);
 
   // Get all unique timestamps and find the earliest date
   const allDates = [
@@ -163,7 +168,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
         mode: "dataset", // This mode checks the closest dataset based on x-axis positioning.
         intersect: false, // Allows the tooltip to appear when hovering over the line segment.
         callbacks: {
-          label: (context: any) => {
+          label: (context: TooltipContext) => {
             const token = tokens[context.datasetIndex];
             return `${token.name}: ${Number(
               context.parsed.y

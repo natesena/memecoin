@@ -5,14 +5,13 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const router = useRouter();
   const [password, setPassword] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(false);
+
   const [error, setError] = useState(false);
 
   const checkPassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "500gwei" || password === "tango") {
       // You can change this password
-      setIsAuthorized(true);
       document.cookie = "memecoin_terminal_isAuthorized=true; path=/";
       localStorage.setItem("memecoin_terminal_isAuthorized", "true");
       router.push("/tokens/holders");
@@ -23,7 +22,7 @@ export default function Home() {
 
   // Check if already authorized
   useEffect(() => {
-    if (localStorage.getItem("isAuthorized") === "true") {
+    if (localStorage.getItem("memecoin_terminal_isAuthorized") === "true") {
       router.push("/tokens/holders");
     }
   }, [router]);
