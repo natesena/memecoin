@@ -69,7 +69,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
             const value = snapshot[key as keyof TokenDetails];
             if (value !== undefined) {
               (formattedSnapshot as Record<string, unknown>)[key] =
-                formatTokenDetailsSnapshot(key, String(value));
+                formatTokenDetailsSnapshot(key as MetricKey, String(value));
             }
           });
           return formattedSnapshot;
@@ -165,7 +165,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
       tooltip: {
         enabled: true,
-        mode: "dataset", // This mode checks the closest dataset based on x-axis positioning.
+        mode: "dataset" as const, // This mode checks the closest dataset based on x-axis positioning.
         intersect: false, // Allows the tooltip to appear when hovering over the line segment.
         callbacks: {
           label: (context: TooltipContext) => {
@@ -178,8 +178,8 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
     },
     interaction: {
-      mode: "index", // Consistent with the tooltip mode.
-      axis: "xy", // This will help detect the line regardless of axis positioning.
+      mode: "index" as const, // Consistent with the tooltip mode.
+      axis: "xy" as const, // This will help detect the line regardless of axis positioning.
       intersect: false, // Allows interaction with the line itself, not just points.
     },
     scales: {
@@ -228,7 +228,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
     },
     maintainAspectRatio: false,
     hover: {
-      mode: "nearest",
+      mode: "nearest" as const,
       intersect: false,
     },
   };

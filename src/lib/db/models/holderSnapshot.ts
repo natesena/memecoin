@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 import type { HolderSnapshot } from "@/types/HolderSnapshot";
 
-export interface HolderSnapshotDocument extends HolderSnapshot, Document {}
+export type HolderSnapshotDocument = HolderSnapshot & Document;
 
 const holderSnapshotSchema = new mongoose.Schema(
   {

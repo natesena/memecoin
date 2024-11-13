@@ -12,9 +12,10 @@ export async function GET(
   try {
     await connectToDatabase();
 
-    const tokenDetails = await TokenDetailsModel.find(
-      { contract },
-      {
+    const tokenDetails = await TokenDetailsModel.find({
+      contract: contract as string,
+    })
+      .select({
         contract: 1,
         ticker: 1,
         name: 1,
@@ -28,8 +29,8 @@ export async function GET(
         lastUpdated: 1,
         createdAt: 1,
         _id: 1,
-      }
-    ).sort({ lastUpdated: 1 });
+      })
+      .exec();
 
     if (!tokenDetails || tokenDetails.length === 0) {
       return NextResponse.json(

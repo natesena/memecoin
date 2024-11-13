@@ -6,11 +6,14 @@ interface MongooseCache {
   promise: Promise<mongoose.Connection> | null;
 }
 
-// Add this type declaration at the top of the file
+// Update the global declaration
 declare global {
-  // Use let instead of var, and provide proper typing
-  let mongoose:
-    | { conn: MongooseCache | null; promise: MongooseCache | null }
+  // eslint-disable-next-line no-var
+  var mongoose:
+    | {
+        conn: mongoose.Connection | null;
+        promise: Promise<mongoose.Connection> | null;
+      }
     | undefined;
 }
 

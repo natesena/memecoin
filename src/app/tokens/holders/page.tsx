@@ -1,5 +1,4 @@
 "use client";
-import TokenHolders from "@/components/tokenholders";
 import AllTokensLine from "@/components/allTokensLine";
 import { useTokens } from "@/context/TokenContext";
 import { useEffect, useState } from "react";
@@ -8,6 +7,7 @@ import { db } from "@/lib/db";
 import { TokenProcessState } from "@/types/TokenProcessState";
 import { metrics } from "@/lib/metrics/metrics";
 import { MetricKey } from "@/types/MetricKey";
+import { UniqueToken } from "@/types/UniqueToken";
 
 interface ProcessedToken {
   name: string;
@@ -20,7 +20,6 @@ export default function HoldersPage() {
     TokenProcessState[]
   >([]);
   const [processedTokens, setProcessedTokens] = useState<ProcessedToken[]>([]);
-  const [maxValue, setMaxValue] = useState<number>(0);
   const { tokens } = useTokens();
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>("holders");
 
@@ -39,8 +38,6 @@ export default function HoldersPage() {
     const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     const fetchTokenData = async () => {
-      let globalMaxHolders = 0;
-
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
@@ -116,19 +113,9 @@ export default function HoldersPage() {
     };
 
     const updateTokenState = (
-      token: any,
+      token: UniqueToken,
       tokenDetailsArray: TokenDetails[]
     ) => {
-      // Update max holders
-      if (tokenDetailsArray.length >= 2) {
-        tokenDetailsArray.forEach((snapshot) => {
-          const holders = parseInt(snapshot.holders?.replace(/,/g, "") || "0");
-          if (!isNaN(holders)) {
-            setMaxValue((prev) => Math.max(prev, holders));
-          }
-        });
-      }
-
       // Update token process state
       setTokenProcessState((prevState) =>
         prevState.map((stateToken) =>
@@ -166,11 +153,18 @@ export default function HoldersPage() {
 
   return (
     <div className="space-y-4">
+      <div style={{ display: "none" }}>
+        {tokenProcessState.map((token) => (
+          <div key={token.contract}>
+            {token.name}- {token.completed ? "✅" : "❌"}
+          </div>
+        ))}
+      </div>
       <div className="flex gap-2">
         {metrics.map((metric) => (
           <button
             key={metric.key}
-            onClick={() => setSelectedMetric(metric.key)}
+            onClick={() => setSelectedMetric(metric.key as MetricKey)}
             className={`px-4 py-2 rounded transition-colors ${
               selectedMetric === metric.key
                 ? "bg-white text-black border border-black"

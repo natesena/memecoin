@@ -1,7 +1,7 @@
 export const metrics = [
   { key: "holders", label: "Total Holders", maxValue: 100000000 },
   { key: "holdersOver10", label: "Holders Over 10", maxValue: 100000000 },
-  { key: "marketCap", label: "Market Cap", maxValue: 10000000000 },
+  { key: "marketCap", label: "Market Cap", maxValue: 1000000000 },
   {
     key: "marketCapPerHolder",
     label: "Market Cap per Holder",

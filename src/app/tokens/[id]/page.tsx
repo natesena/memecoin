@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { TokenDetails as TokenDetailsType } from "@/types/TokenDetails";
 import Link from "next/link";
 import { metrics } from "@/lib/metrics/metrics";
+import type { MetricKey } from "@/types/MetricKey";
 
 export default function DetailsPage() {
   const params = useParams();
@@ -67,7 +68,7 @@ export default function DetailsPage() {
             <MetricsChart
               key={metric.key}
               snapshots={snapshots}
-              metric={metric.key}
+              metric={metric.key as MetricKey}
               label={metric.label}
               ticker={token?.ticker ?? ""}
             />

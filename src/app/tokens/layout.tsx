@@ -3,12 +3,7 @@ import { TokenList } from "@/components/tokenList";
 import { useEffect, useState } from "react";
 import { TokenContext } from "@/context/TokenContext";
 import { TokenProcessState } from "@/types/TokenProcessState";
-
-interface UniqueToken {
-  _id: string;
-  contract: string;
-  ticker: string;
-}
+import { UniqueToken } from "@/types/UniqueToken";
 
 export default function TokensLayout({
   children,
@@ -19,9 +14,18 @@ export default function TokensLayout({
   const [selectedToken, setSelectedToken] = useState<UniqueToken | null>(null);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [tokenProcessState, setTokenProcessState] = useState<
     TokenProcessState[]
   >([]);
+
+  useEffect(() => {
+    // Check authorization after component mounts
+    const authorized = document.cookie.includes(
+      "memecoin_terminal_isAuthorized=true"
+    );
+    setIsAuthorized(authorized);
+  }, []);
 
   useEffect(() => {
     async function fetchTokens() {
@@ -48,9 +52,6 @@ export default function TokensLayout({
     fetchTokens();
   }, []);
 
-  const isAuthorized = document.cookie.includes(
-    "memecoin_terminal_isAuthorized=true"
-  );
   if (!isAuthorized) {
     return <div>{children}</div>;
   }

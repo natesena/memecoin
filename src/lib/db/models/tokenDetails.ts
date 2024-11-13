@@ -1,20 +1,9 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
+import type { TokenDetails } from "@/types/TokenDetails";
 
-export interface TokenDetailsDocument extends Document {
-  contract: string;
-  name?: string;
-  ticker?: string;
-  holders?: string;
-  holdersOver10?: string;
-  marketCap?: string;
-  marketCapPerHolder?: string;
-  marketCapPerHolderOver10?: string;
-  openTokenAccounts?: string;
-  holdersToOpenAccountsRatio?: string;
-  lastUpdated: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export interface TokenDetailsDocument
+  extends Document,
+    Omit<TokenDetails, "_id"> {}
 
 const tokenDetailsSchema = new mongoose.Schema(
   {
@@ -35,7 +24,7 @@ const tokenDetailsSchema = new mongoose.Schema(
   }
 );
 
-const TokenDetailsModel =
+const TokenDetailsModel: Model<TokenDetailsDocument> =
   mongoose.models.TokenDetails ||
   mongoose.model<TokenDetailsDocument>("TokenDetails", tokenDetailsSchema);
 

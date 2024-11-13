@@ -20,12 +20,7 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
-interface UniqueToken {
-  _id: string;
-  contract: string;
-  ticker: string;
-}
+import { UniqueToken } from "@/types/UniqueToken";
 
 interface TokenHistory {
   contract: string;

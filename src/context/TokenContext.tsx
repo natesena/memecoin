@@ -1,11 +1,6 @@
 import { createContext, useContext } from "react";
 import { TokenProcessState } from "@/types/TokenProcessState";
-
-interface UniqueToken {
-  _id: string;
-  contract: string;
-  ticker: string;
-}
+import { UniqueToken } from "@/types/UniqueToken";
 
 interface TokenContextType {
   tokens: UniqueToken[];
