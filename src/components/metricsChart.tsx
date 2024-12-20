@@ -11,7 +11,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import type { TokenDetails } from "@/types/TokenDetails";
-import type { TokenMetrics } from "@/types/TokenMetrics";
+import type { TokenMetrics, HolderDistribution } from "@/types/TokenMetrics";
 
 ChartJS.register(
   CategoryScale,
@@ -38,18 +38,20 @@ export default function MetricsChart({
 }: MetricsChartProps) {
   const formatValue = (value: string | null | undefined) => {
     if (!value) return 0;
-    // Remove currency symbol, commas, and percentage signs
+    
+    // Remove currency symbol, commas, and percentage signs for other metrics
     const cleanValue = value.replace(/[$,%]/g, "");
-    // Convert to number
     return parseFloat(cleanValue) || 0;
   };
 
-  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string) => {
+  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string): string => {
     if (metric.startsWith('holderDistribution.')) {
-      const [_, key] = metric.split('.');
-      return (snapshot as TokenMetrics).holderDistribution?.[key] || '0';
+      const key = metric.split('.')[1];
+      return (snapshot as TokenMetrics).holderDistribution?.[key as keyof HolderDistribution] || '0';
     }
-    return (snapshot as any)[metric]?.toString() || '0';
+    
+    return ((snapshot as TokenDetails)[metric as keyof TokenDetails] || 
+            (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || '0';
   };
 
   const chartData = {
@@ -92,7 +94,7 @@ export default function MetricsChart({
             } else if (metric === "hhi") {
               return value.toLocaleString();
             } else if (metric === "medianHolder") {
-              return "$" + value.toLocaleString();
+              return "#" + value.toLocaleString();
             } else if (
               metric === "marketCap" ||
               metric === "marketCapPerHolder" ||

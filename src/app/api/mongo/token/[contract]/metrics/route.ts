@@ -29,7 +29,17 @@ export async function GET(
       return NextResponse.json([], { status: 200 });
     }
 
-    return NextResponse.json(tokenMetrics);
+    // Format the metrics data
+    const formattedMetrics = tokenMetrics.map(metric => {
+      const data = metric.toObject();
+      // Remove the # from medianHolder and convert to number
+      if (data.medianHolder && data.medianHolder.startsWith('#')) {
+        data.medianHolder = data.medianHolder.substring(1);
+      }
+      return data;
+    });
+
+    return NextResponse.json(formattedMetrics);
   } catch (error) {
     console.error("Error fetching token metrics:", error);
     return NextResponse.json(
