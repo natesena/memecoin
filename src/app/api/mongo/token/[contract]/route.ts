@@ -1,5 +1,6 @@
 import { connectToDatabase } from "@/lib/db/client";
 import TokenDetailsModel from "@/lib/db/models/tokenDetails";
+import TokenMetrics from "@/lib/db/models/tokenMetrics";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -15,11 +16,17 @@ export async function GET(
       contract,
     });
 
+    const tokenMetrics = await TokenMetrics.findOne({
+      contract,
+    });
+
+    console.log({tokenMetrics})
+
     if (!tokenDetails) {
       return NextResponse.json({ error: "Token not found" }, { status: 404 });
     }
 
-    return NextResponse.json(tokenDetails);
+    return NextResponse.json({tokenDetails, tokenMetrics});
   } catch (error) {
     console.error("Error fetching token details:", error);
     return NextResponse.json(
