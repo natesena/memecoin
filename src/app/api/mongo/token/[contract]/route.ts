@@ -20,7 +20,6 @@ export async function GET(
       contract,
     });
 
-    console.log({tokenMetrics})
 
     if (!tokenDetails) {
       return NextResponse.json({ error: "Token not found" }, { status: 404 });

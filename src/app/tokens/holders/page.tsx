@@ -65,7 +65,6 @@ export default function HoldersPage() {
                 : stateToken
             )
           );
-
           const response = await fetch(
             `/api/mongo/token/${token.contract}/history`
           );
