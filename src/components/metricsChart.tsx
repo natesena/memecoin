@@ -54,6 +54,15 @@ export default function MetricsChart({
             (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || null;
   };
 
+  const hasValidData = snapshots.some(snapshot => {
+    const value = getValue(snapshot, metric);
+    return value !== null && value !== undefined && value !== '';
+  });
+
+  if (!hasValidData) {
+    return null;
+  }
+
   const chartData = {
     labels: snapshots.map((snapshot) =>
       new Date(snapshot.createdAt).toLocaleDateString()
