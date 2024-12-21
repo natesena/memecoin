@@ -207,7 +207,7 @@ export default function TokensLayout({
             />
             {noResults && (
               <div className="text-gray-500 p-4">
-                No results found
+                No results found for <span className="text-white font-bold">{inputValue}</span>
               </div>
             )}
           </aside>
