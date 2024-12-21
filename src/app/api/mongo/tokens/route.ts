@@ -16,11 +16,10 @@ export async function GET(request: Request) {
       {
         $match: {
           $or: [
-            // Add word boundary for better partial matching
-            { ticker: { $regex: `.*${query}.*`, $options: 'i' } },
-            { contract: { $regex: `^${query}`, $options: 'i' } }, // Contract should start with the query
-            // Add name field search if available
-            { name: { $regex: `.*${query}.*`, $options: 'i' } }
+            // Match consecutive characters anywhere in string
+            { ticker: { $regex: query, $options: 'i' } },
+            { contract: { $regex: query, $options: 'i' } },
+            { name: { $regex: query, $options: 'i' } }
           ]
         }
       }
