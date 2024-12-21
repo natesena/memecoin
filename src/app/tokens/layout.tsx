@@ -5,6 +5,7 @@ import { TokenContext } from "@/context/TokenContext";
 import { TokenProcessState } from "@/types/TokenProcessState";
 import { UniqueToken } from "@/types/UniqueToken";
 import debounce from 'lodash/debounce';
+import { db } from "@/lib/db";
 
 export default function TokensLayout({
   children,
@@ -19,6 +20,7 @@ export default function TokensLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [tokenProcessState, setTokenProcessState] = useState<TokenProcessState[]>([]);
+  const [noResults, setNoResults] = useState(false);
   
   const isLoadingRef = useRef(false);
   const skipRef = useRef(0);
@@ -40,6 +42,18 @@ export default function TokensLayout({
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    
+    // Reset error state
+    setError("");
+    setNoResults(false);
+    
+    
+    // Validate contract address format if it looks like one
+    if (value.startsWith("0x") && value.length !== 42) {
+      setError("Invalid contract address format");
+      return;
+    }
+    
     setInputValue(value);
     debouncedSearch(value);
   };
@@ -59,25 +73,62 @@ export default function TokensLayout({
     try {
       isLoadingRef.current = true;
       setLoading(true);
+      setError("");
       
       const queryParams = new URLSearchParams({
         skip: skipRef.current.toString(),
         ...(searchQuery && { query: searchQuery })
       });
+
+      // Check cache first if it's a search query and first page
+      let data;
+      if (searchQuery && skipRef.current === 0) {
+        const cachedResult = await db.searchCache
+          .where('query')
+          .equals(searchQuery)
+          .first();
+        
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+        
+        if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
+          data = {
+            tokens: cachedResult.results,
+            hasMore: false, // Cached results are complete
+            total: cachedResult.results.length
+          };
+        }
+      }
       
-      const response = await fetch(`/api/mongo/tokens?${queryParams}`);
-      const data = await response.json();
+      // If no cache or expired, fetch from API
+      if (!data) {
+        const response = await fetch(`/api/mongo/tokens?${queryParams}`);
+        if (!response.ok) throw new Error('Failed to fetch tokens');
+        data = await response.json();
+        
+        // Cache the results if it's a search query
+        if (searchQuery && skipRef.current === 0) {
+          await db.searchCache.put({
+            query: searchQuery,
+            results: data.tokens,
+            timestamp: Date.now()
+          });
+        }
+      }
       
-      if (!response.ok) throw new Error(data.error);
+      // Check for no results
+      if (data.tokens.length === 0 && skipRef.current === 0) {
+        setNoResults(true);
+      } else {
+        setNoResults(false);
+      }
       
-      const newTokens = data.tokens;
-      setTokens(prev => [...prev, ...newTokens]);
+      setTokens(prev => [...prev, ...data.tokens]);
       setHasMore(data.hasMore);
-      skipRef.current += newTokens.length;
+      skipRef.current += data.tokens.length;
       
       setTokenProcessState(prev => [
         ...prev,
-        ...newTokens.map((token: UniqueToken) => ({
+        ...data.tokens.map((token: UniqueToken) => ({
           name: token.ticker,
           contract: token.contract,
           loading: false,
@@ -154,6 +205,11 @@ export default function TokensLayout({
               clearSearch={clearSearch}
               loading={loading}
             />
+            {noResults && (
+              <div className="text-gray-500 p-4">
+                No results found
+              </div>
+            )}
           </aside>
           <div className="flex-1 w-[calc(100%-20rem-1rem)] overflow-y-auto max-h-[calc(100vh-8rem)]">
             {children}
