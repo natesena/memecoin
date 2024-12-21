@@ -23,7 +23,6 @@ export default function TokensLayout({
   const isLoadingRef = useRef(false);
   const skipRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const resetState = useCallback(() => {
     skipRef.current = 0;
@@ -38,6 +37,21 @@ export default function TokensLayout({
     setSearchQuery("");
     resetState();
   }, [resetState]);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setInputValue(value);
+    debouncedSearch(value);
+  };
+
+  // Debounced search handler
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value);
+      resetState();
+    }, 500),
+    [resetState]
+  );
 
   const loadTokens = useCallback(async () => {
     if (!hasMore || isLoadingRef.current) return;
@@ -78,21 +92,6 @@ export default function TokensLayout({
       isLoadingRef.current = false;
     }
   }, [hasMore, searchQuery]);
-
-  // Debounced search handler
-  const debouncedSearch = useCallback(
-    debounce((value: string) => {
-      setSearchQuery(value);
-      resetState();
-    }, 500),
-    [resetState]
-  );
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setInputValue(value);
-    debouncedSearch(value);
-  };
 
   // Initial load
   useEffect(() => {
