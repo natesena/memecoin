@@ -37,21 +37,21 @@ export default function MetricsChart({
   ticker,
 }: MetricsChartProps) {
   const formatValue = (value: string | null | undefined) => {
-    if (!value) return 0;
+    if (!value) return null;
     
     // Remove currency symbol, commas, and percentage signs for other metrics
     const cleanValue = value.replace(/[$,%]/g, "");
-    return parseFloat(cleanValue) || 0;
+    return parseFloat(cleanValue) || null;
   };
 
-  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string): string => {
+  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string): string | null => {
     if (metric.startsWith('holderDistribution.')) {
       const key = metric.split('.')[1];
-      return (snapshot as TokenMetrics).holderDistribution?.[key as keyof HolderDistribution] || '0';
+      return (snapshot as TokenMetrics).holderDistribution?.[key as keyof HolderDistribution] || null;
     }
     
     return ((snapshot as TokenDetails)[metric as keyof TokenDetails] || 
-            (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || '0';
+            (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || null;
   };
 
   const chartData = {

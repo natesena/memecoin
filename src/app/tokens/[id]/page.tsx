@@ -41,7 +41,6 @@ export default function DetailsPage() {
           historyResponse.json(),
           metricsResponse.json()
         ]);
-
         setSnapshots(historyData);
         setMetricsSnapshots(metricsData);
       } catch (error) {

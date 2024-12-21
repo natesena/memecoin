@@ -20,6 +20,7 @@ export default function TokensLayout({
   // Use refs to track loading state and current skip value
   const isLoadingRef = useRef(false);
   const skipRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const loadTokens = useCallback(async () => {
     if (!hasMore || isLoadingRef.current) return;
@@ -62,29 +63,26 @@ export default function TokensLayout({
     loadTokens();
   }, [loadTokens]);
 
-  // Intersection Observer setup
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && hasMore && !isLoadingRef.current) {
-          loadTokens();
-        }
-      },
-      {
-        root: null,
-        rootMargin: '20px',
-        threshold: 0.1
-      }
-    );
+  // Scroll handler with throttling
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || !hasMore || isLoadingRef.current) return;
 
-    const sentinel = document.getElementById('sentinel');
-    if (sentinel) {
-      observer.observe(sentinel);
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const scrolledToBottom = scrollHeight - scrollTop <= clientHeight + 50; // Reduced threshold to 50px
+    
+    if (scrolledToBottom) {
+      loadTokens();
     }
-
-    return () => observer.disconnect();
   }, [loadTokens, hasMore]);
+
+  // Add scroll listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   if (error) {
     return (
@@ -107,16 +105,15 @@ export default function TokensLayout({
             setTokenProcessState,
           }}
         >
-          <aside className="w-80 h-[calc(100vh-8rem)] overflow-y-auto border-r pr-4">
+          <aside ref={containerRef} className="w-80 h-[calc(100vh-8rem)] overflow-y-auto border-r pr-4">
             <TokenList tokenProcessState={tokenProcessState} />
-            {/* Sentinel element for infinite scroll */}
-            <div id="sentinel" className="h-20 w-full flex items-center justify-center">
-              {loading && (
+            {loading && (
+              <div className="h-20 w-full flex items-center justify-center">
                 <div className="animate-pulse text-sm text-gray-500">
                   Loading more tokens...
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </aside>
           <div className="flex-1 w-[calc(100%-20rem-1rem)] overflow-y-auto max-h-[calc(100vh-8rem)]">
             {children}

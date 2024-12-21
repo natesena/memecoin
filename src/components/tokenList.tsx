@@ -29,7 +29,7 @@ export function TokenList({
           placeholder-gray-400 dark:placeholder-gray-500
           focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600"
       />
-      <div className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto px-2">
+      <div className="space-y-4">
         {filteredTokens.map((token) => (
           <TokenListElement token={token} key={token.contract} />
         ))}
