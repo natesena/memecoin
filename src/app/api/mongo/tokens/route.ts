@@ -6,12 +6,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skip = parseInt(searchParams.get('skip') || '0');
+    const query = searchParams.get('query') || '';
     const limit = 50; // Fixed limit of 50 tokens per request
 
     await connectToDatabase();
     
-    // First get the total count
+    // Build the search pipeline
+    const searchPipeline = query ? [
+      {
+        $match: {
+          $or: [
+            { ticker: { $regex: query, $options: 'i' } },
+            { contract: { $regex: query, $options: 'i' } }
+          ]
+        }
+      }
+    ] : [];
+    
+    // First get the total count with search filter
     const [totalCount] = await HolderSnapshot.aggregate([
+      ...searchPipeline,
       {
         $group: {
           _id: "$contract"
@@ -22,8 +36,9 @@ export async function GET(request: Request) {
       }
     ]);
 
-    // Then get the paginated tokens
+    // Then get the paginated tokens with search filter
     const uniqueTokens = await HolderSnapshot.aggregate([
+      ...searchPipeline,
       // Group by contract and get the first ticker
       {
         $group: {
