@@ -64,7 +64,7 @@ const TokenDetails = ({ contract }: TokenDetailsProps) => {
         </div>
         <div>
           <h2 className="font-semibold">Last Updated</h2>
-          <p>{tokenDetails.lastUpdated?.toLocaleString()}</p>
+          <p>{tokenDetails.lastUpdated ? new Date(tokenDetails.lastUpdated).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) : 'N/A'}</p>
         </div>
       </div>
     </div>
