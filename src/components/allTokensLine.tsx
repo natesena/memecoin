@@ -165,8 +165,8 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
       tooltip: {
         enabled: true,
-        mode: "dataset" as const, // This mode checks the closest dataset based on x-axis positioning.
-        intersect: false, // Allows the tooltip to appear when hovering over the line segment.
+        mode: "nearest", // Show the tooltip for the closest point
+        intersect: false, // Allows the tooltip to show when hovering near the line
         callbacks: {
           label: (context: TooltipContext) => {
             const token = tokens[context.datasetIndex];
@@ -178,13 +178,13 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
     },
     interaction: {
-      mode: "index" as const, // Consistent with the tooltip mode.
-      axis: "xy" as const, // This will help detect the line regardless of axis positioning.
+      mode: "index", // Consistent with the tooltip mode.
+      axis: "xy", // This will help detect the line regardless of axis positioning.
       intersect: false, // Allows interaction with the line itself, not just points.
     },
     scales: {
       x: {
-        type: "time" as const,
+        type: "time",
         time: {
           displayFormats: {
             millisecond: "HH:mm:ss.SSS",
@@ -212,7 +212,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
         min: new Date(minDate).getTime(),
       },
       y: {
-        type: "linear" as const,
+        type: "linear",
         min: 0,
         max: yAxisMax,
         title: {
@@ -228,7 +228,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
     },
     maintainAspectRatio: false,
     hover: {
-      mode: "nearest" as const,
+      mode: "nearest", // Focuses on the nearest point
       intersect: false,
     },
   };
