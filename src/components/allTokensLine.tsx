@@ -12,6 +12,7 @@ import {
   Tooltip,
   TimeScale,
 } from "chart.js";
+import { useRouter } from "next/navigation";
 
 ChartJS.register(
   CategoryScale,
@@ -47,6 +48,8 @@ interface TooltipContext {
 }
 
 const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
+  const router = useRouter();
+
   const maxValueForMetric =
     metrics[metrics.findIndex((m) => m.key === metric)]?.maxValue || 0;
   const [activeMaxValue, setActiveMaxValue] = useState<number>(
@@ -139,6 +142,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       data: token.snapshots.map((snapshot) => ({
         x: new Date(snapshot.createdAt).getTime(),
         y: Number(String(snapshot[metric]).replace(/[$,%]/g, "")),
+        contract: token.contract,
       })),
       borderColor: colors[index % colors.length],
       backgroundColor: colors[index % colors.length]
@@ -181,6 +185,10 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       mode: "index", // Consistent with the tooltip mode.
       axis: "xy", // This will help detect the line regardless of axis positioning.
       intersect: false, // Allows interaction with the line itself, not just points.
+    },
+    onClick: (event: any, chartInstance: any) => {
+      const contract = chartInstance[0].element.$context.raw.contract;
+      router.replace(`/tokens/${contract}`);
     },
     scales: {
       x: {
@@ -232,7 +240,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       intersect: false,
     },
   };
-  console.log(metric);
+  // console.log({chartData});
   return (
     <div className="w-full h-[600px] p-4">
       <h1>{metric}</h1>
