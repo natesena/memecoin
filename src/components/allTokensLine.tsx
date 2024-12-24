@@ -169,7 +169,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
       tooltip: {
         enabled: true,
-        mode: "nearest", // Show the tooltip for the closest point
+        mode: "nearest" as const, // Show the tooltip for the closest point
         intersect: false, // Allows the tooltip to show when hovering near the line
         callbacks: {
           label: (context: TooltipContext) => {
@@ -182,17 +182,18 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
     },
     interaction: {
-      mode: "index", // Consistent with the tooltip mode.
-      axis: "xy", // This will help detect the line regardless of axis positioning.
+      mode: "index" as const, // Consistent with the tooltip mode.
+      axis: "xy" as const, // This will help detect the line regardless of axis positioning.
       intersect: false, // Allows interaction with the line itself, not just points.
     },
-    onClick: (event: any, chartInstance: any) => {
+
+    onClick: (e, chartInstance) => {
       const contract = chartInstance[0].element.$context.raw.contract;
       router.replace(`/tokens/${contract}`);
-    },
+  },
     scales: {
       x: {
-        type: "time",
+        type: "time" as const,
         time: {
           displayFormats: {
             millisecond: "HH:mm:ss.SSS",
@@ -220,7 +221,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
         min: new Date(minDate).getTime(),
       },
       y: {
-        type: "linear",
+        type: "linear" as const,
         min: 0,
         max: yAxisMax,
         title: {
@@ -236,15 +237,16 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
     },
     maintainAspectRatio: false,
     hover: {
-      mode: "nearest", // Focuses on the nearest point
+      mode: "nearest" as const, // Focuses on the nearest point
       intersect: false,
     },
   };
-  // console.log({chartData});
+
   return (
     <div className="w-full h-[600px] p-4">
       <h1>{metric}</h1>
-      <Line data={chartData} options={options} />
+
+      <Line data={chartData} options={options}/>
     </div>
   );
 };
