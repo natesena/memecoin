@@ -10,6 +10,7 @@ import type { TokenMetrics } from "@/types/TokenMetrics";
 import { metrics, tokenMetrics } from "@/lib/metrics/metrics";
 import type { MetricKey } from "@/types/MetricKey";
 import MultiChart from "@/components/multiMetric";
+
 export default function DetailsPage() {
   const params = useParams();
   const tokenContract = params.id as string;
@@ -103,19 +104,47 @@ export default function DetailsPage() {
           ))}
         </div>
       )}
+
+{metricsSnapshots.length > 0 && snapshots.length > 0 && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+    <h2 className="text-xl font-bold col-span-2 mt-4">
+      Snapshots vs Metrics Snapshots
+    </h2>
+    {tokenMetrics.map((metricA, indexA) => {
+      return metrics.map((metricB, indexB) => {
+        if (indexA < indexB) {
+        console.log({ metricA, metricB });
+        return (
+          <MultiChart
+            key={`${metricA.key}-${metricB.key}`} // Unique key combining metrics
+            snapshotA={metricsSnapshots} // All snapshots
+            snapshotB={snapshots} // All metricsSnapshots
+            metricA={metricA.key}
+            metricB={metricB.key}
+            labelA={metricA.label}
+            labelB={metricB.label}
+            tickerA={token?.ticker ?? ""}
+            tickerB={token?.ticker ?? ""}
+          />
+        );
+        }
+      });
+    })}
+  </div>
+)}
+
+
       {metricsSnapshots.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
           <h2 className="text-xl font-bold col-span-2 mt-4">
             Correlations
           </h2>
           {tokenMetrics.map((metricA, indexA) => {
-            // Pair each metricA with every other metricB
             return tokenMetrics.map((metricB, indexB) => {
-              // Make sure we're not pairing a metric with itself
               if (indexA < indexB) {
                 return (
                   <MultiChart
-                    key={`${metricA.key}-${metricB.key}`} // Combine the keys to ensure uniqueness
+                    key={`${metricA.key}-${metricB.key}`}
                     snapshotA={metricsSnapshots}
                     snapshotB={metricsSnapshots}
                     metricA={metricA.key}
@@ -127,7 +156,7 @@ export default function DetailsPage() {
                   />
                 );
               }
-              return null; // Don't render a chart if the indices are the same (metric with itself)
+              return null;
             });
           })}
         </div>

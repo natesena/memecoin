@@ -1,4 +1,5 @@
 "use client";
+import React, { useRef } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import zoomPlugin from "chartjs-plugin-zoom";
 import { Line } from "react-chartjs-2";
 import type { TokenDetails } from "@/types/TokenDetails";
 import type { TokenMetrics, HolderDistribution } from "@/types/TokenMetrics";
@@ -20,7 +22,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  zoomPlugin
 );
 
 interface MetricsChartProps {
@@ -34,6 +37,34 @@ interface MetricsChartProps {
   tickerB: string;
 }
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  zoomPlugin
+);
+
+const zoomOptions = {
+  pan: {
+    enabled: true,
+    mode: "x"
+  },
+  zoom: {
+    wheel: {
+      enabled: true
+    },
+    pinch: {
+      enabled: true
+    },
+    mode: "x"
+  }
+};
+
+
 export default function MultiChart({
   snapshotA,
   snapshotB,
@@ -44,6 +75,9 @@ export default function MultiChart({
   labelB,
   tickerB,
 }: MetricsChartProps) {
+  const chartRef = useRef<any | null>(null);
+
+
   const formatValue = (value: string | null | undefined) => {
     if (!value) return null;
     
@@ -96,8 +130,8 @@ export default function MultiChart({
         data: snapshotA.map((snapshot) =>
           formatValue(getValue(snapshot, metricA))
         ),
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(75, 192, 192, 0.5)",
+        borderColor: "white",
+        backgroundColor: "white",
         tension: 0.1,
       },
       {
@@ -112,6 +146,8 @@ export default function MultiChart({
     ],
   };
 
+
+  
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -123,6 +159,7 @@ export default function MultiChart({
         display: true,
         text: `${tickerA} vs ${tickerB}`,
       },
+      zoom: zoomOptions
     },
     scales: {
       y: {
@@ -176,9 +213,35 @@ export default function MultiChart({
     },
   };
 
+
+  const onResetZoom = () => {
+    chartRef.current.resetZoom();
+  };
+
+  const onZoomPluse = () => {
+    chartRef.current.zoom(1.1);
+  };
+
+  const onZoomMinus = () => {
+    chartRef.current.zoom(0.9);
+  };
+
+  const onPanPluse = () => {
+    chartRef.current.pan({ x: 100 }, undefined, "default");
+  };
+
+  const onPanMinus = () => {
+    chartRef.current.pan({ x: -100 }, undefined, "default");
+  };
+
   return (
     <div className="w-full h-[300px] p-4 border rounded-lg">
-      <Line options={options} data={chartData} />
+      <Line ref={chartRef} options={options} data={chartData} />
+      <button onClick={onResetZoom}>zoom reset</button>
+      <button onClick={onZoomPluse}>zoom +10%</button>
+      <button onClick={onZoomMinus}>zoom -10%</button>
+      <button onClick={onPanPluse}>pan +100px</button>
+      <button onClick={onPanMinus}>pan -100px</button>
     </div>
   );
 }
