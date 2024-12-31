@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import type { Chart } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
 import { Line } from "react-chartjs-2";
 import type { TokenDetails } from "@/types/TokenDetails";
@@ -51,19 +52,18 @@ ChartJS.register(
 const zoomOptions = {
   pan: {
     enabled: true,
-    mode: "x"
+    mode: "xy" as const, 
   },
   zoom: {
     wheel: {
-      enabled: true
+      enabled: true,
     },
     pinch: {
-      enabled: true
+      enabled: true,
     },
-    mode: "x"
-  }
+    mode: "y" as const, 
+  },
 };
-
 
 export default function MultiChart({
   snapshotA,
@@ -75,50 +75,64 @@ export default function MultiChart({
   labelB,
   tickerB,
 }: MetricsChartProps) {
-  const chartRef = useRef<any | null>(null);
-
+  const chartRef = useRef<Chart<
+    "line",
+    (number | [number, number] | { x: number; y: number } | null)[],
+    unknown
+  > | null>(null);
 
   const formatValue = (value: string | null | undefined) => {
     if (!value) return null;
-    
+
     // Remove currency symbol, commas, and percentage signs for other metrics
     const cleanValue = value.replace(/[$,%]/g, "");
     return parseFloat(cleanValue) || null;
   };
 
-  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string): string | null => {
-    if (metric.startsWith('holderDistribution.')) {
-      const key = metric.split('.')[1];
-      return (snapshot as TokenMetrics).holderDistribution?.[key as keyof HolderDistribution] || null;
+  const getValue = (
+    snapshot: TokenDetails | TokenMetrics,
+    metric: string
+  ): string | null => {
+    if (metric.startsWith("holderDistribution.")) {
+      const key = metric.split(".")[1];
+      return (
+        (snapshot as TokenMetrics).holderDistribution?.[
+          key as keyof HolderDistribution
+        ] || null
+      );
     }
-    
-    return ((snapshot as TokenDetails)[metric as keyof TokenDetails] || 
-            (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || null;
+
+    return (
+      (
+        (snapshot as TokenDetails)[metric as keyof TokenDetails] ||
+        (snapshot as TokenMetrics)[metric as keyof TokenMetrics]
+      )?.toString() || null
+    );
   };
 
-  const hasValidDataA = snapshotA.some(snapshot => {
+  const hasValidDataA = snapshotA.some((snapshot) => {
     const value = getValue(snapshot, metricA);
-    return value !== null && value !== undefined && value !== '';
+    return value !== null && value !== undefined && value !== "";
   });
 
   if (!hasValidDataA) {
     return null;
   }
 
-  const hasValidDataB = snapshotB.some(snapshot => {
+  const hasValidDataB = snapshotB.some((snapshot) => {
     const value = getValue(snapshot, metricB);
-    return value !== null && value !== undefined && value !== '';
+    return value !== null && value !== undefined && value !== "";
   });
 
   if (!hasValidDataB) {
     return null;
   }
 
-  const labelsA = snapshotA.map((snapshot) => 
+  const labelsA = snapshotA.map((snapshot) =>
     new Date(snapshot.createdAt).toLocaleDateString()
   );
-  
-  const labelsB = snapshotB.map((snapshot) => 
+
+  const labelsB = snapshotB.map((snapshot) =>
     new Date(snapshot.createdAt).toLocaleDateString()
   );
 
@@ -146,8 +160,6 @@ export default function MultiChart({
     ],
   };
 
-
-  
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -157,91 +169,131 @@ export default function MultiChart({
       },
       title: {
         display: true,
-        text: `${tickerA} vs ${tickerB}`,
+        text: `${labelA} vs ${labelB}`,
       },
-      zoom: zoomOptions
+      zoom: zoomOptions,
     },
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-            callback: function (tickValue: number | string) {
-                const value = Number(tickValue);
-            
-                // Format metricA
-                let formattedMetricA = '';
-                if (metricA.startsWith('holderDistribution.') || metricA === "holdersToOpenAccountsRatio") {
-                    formattedMetricA = value.toLocaleString() + "%";
-                } else if (metricA === "hhi") {
-                    formattedMetricA = value.toLocaleString();
-                } else if (metricA === "medianHolder") {
-                    formattedMetricA = "#" + value.toLocaleString();
-                } else if (
-                    metricA === "marketCap" ||
-                    metricA === "marketCapPerHolder" ||
-                    metricA === "marketCapPerHolderOver10"
-                ) {
-                    formattedMetricA = "$" + value.toLocaleString();
-                } else {
-                    formattedMetricA = value.toLocaleString();
-                }
-            
-                // Format metricB
-                let formattedMetricB = '';
-                if (metricB.startsWith('holderDistribution.') || metricB === "holdersToOpenAccountsRatio") {
-                    formattedMetricB = value.toLocaleString() + "%";
-                } else if (metricB === "hhi") {
-                    formattedMetricB = value.toLocaleString();
-                } else if (metricB === "medianHolder") {
-                    formattedMetricB = "#" + value.toLocaleString();
-                } else if (
-                    metricB === "marketCap" ||
-                    metricB === "marketCapPerHolder" ||
-                    metricB === "marketCapPerHolderOver10"
-                ) {
-                    formattedMetricB = "$" + value.toLocaleString();
-                } else {
-                    formattedMetricB = value.toLocaleString();
-                }
-            
-                // Return both metrics together
-                return `${formattedMetricA} / ${formattedMetricB}`;
-            },
-            
+          callback: function (tickValue: number | string) {
+            const value = Number(tickValue);
+
+            // Format metricA
+            let formattedMetricA = "";
+            if (
+              metricA.startsWith("holderDistribution.") ||
+              metricA === "holdersToOpenAccountsRatio"
+            ) {
+              formattedMetricA = value.toLocaleString() + "%";
+            } else if (metricA === "hhi") {
+              formattedMetricA = value.toLocaleString();
+            } else if (metricA === "medianHolder") {
+              formattedMetricA = "#" + value.toLocaleString();
+            } else if (
+              metricA === "marketCap" ||
+              metricA === "marketCapPerHolder" ||
+              metricA === "marketCapPerHolderOver10"
+            ) {
+              formattedMetricA = "$" + value.toLocaleString();
+            } else {
+              formattedMetricA = value.toLocaleString();
+            }
+
+            // Format metricB
+            let formattedMetricB = "";
+            if (
+              metricB.startsWith("holderDistribution.") ||
+              metricB === "holdersToOpenAccountsRatio"
+            ) {
+              formattedMetricB = value.toLocaleString() + "%";
+            } else if (metricB === "hhi") {
+              formattedMetricB = value.toLocaleString();
+            } else if (metricB === "medianHolder") {
+              formattedMetricB = "#" + value.toLocaleString();
+            } else if (
+              metricB === "marketCap" ||
+              metricB === "marketCapPerHolder" ||
+              metricB === "marketCapPerHolderOver10"
+            ) {
+              formattedMetricB = "$" + value.toLocaleString();
+            } else {
+              formattedMetricB = value.toLocaleString();
+            }
+
+            // Return both metrics together
+            return `${formattedMetricA} / ${formattedMetricB}`;
+          },
         },
       },
     },
   };
 
-
   const onResetZoom = () => {
-    chartRef.current.resetZoom();
+    if (chartRef.current) {
+      chartRef.current.resetZoom();
+    } else {
+      console.warn("chartRef.current is null");
+    }
   };
 
   const onZoomPluse = () => {
-    chartRef.current.zoom(1.1);
+    if (chartRef.current) {
+      chartRef.current.zoom(1.1);
+    } else {
+      console.warn("chartRef.current is null");
+    }
   };
 
   const onZoomMinus = () => {
-    chartRef.current.zoom(0.9);
-  };
-
-  const onPanPluse = () => {
-    chartRef.current.pan({ x: 100 }, undefined, "default");
-  };
-
-  const onPanMinus = () => {
-    chartRef.current.pan({ x: -100 }, undefined, "default");
+    if (chartRef.current) {
+      chartRef.current.zoom(0.9);
+    } else {
+      console.warn("chartRef.current is null");
+    }
   };
 
   return (
-    <div className="w-full h-[300px] p-4 border rounded-lg">
+    <div className="w-full relative h-[300px] p-4 border rounded-lg">
+      <div className="absolute top-4 right-4 space-x-2 flex items-center bg-white/20 p-4 py-2 rounded-full border border-white z-100">
+        <button onClick={onResetZoom} className="text-[12px]">reset</button>
+        
+        <button onClick={onZoomMinus}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="lucide lucide-minus"
+          >
+            <path d="M5 12h14" />
+          </svg>
+        </button>
+        <button onClick={onZoomPluse}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="lucide lucide-plus"
+          >
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+        </button>
+      </div>
       <Line ref={chartRef} options={options} data={chartData} />
-      <button onClick={onResetZoom}>zoom reset</button>
-      <button onClick={onZoomPluse}>zoom +10%</button>
-      <button onClick={onZoomMinus}>zoom -10%</button>
-      <button onClick={onPanPluse}>pan +100px</button>
-      <button onClick={onPanMinus}>pan -100px</button>
     </div>
   );
 }
