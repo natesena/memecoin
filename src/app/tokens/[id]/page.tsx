@@ -105,40 +105,60 @@ export default function DetailsPage() {
         </div>
       )}
 
-{metricsSnapshots.length > 0 && snapshots.length > 0 && (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-    <h2 className="text-xl font-bold col-span-2 mt-4">
-      Snapshots vs Metrics Snapshots
-    </h2>
-    {tokenMetrics.map((metricA, indexA) => {
-      return metrics.map((metricB, indexB) => {
-        if (indexA < indexB) {
-        console.log({ metricA, metricB });
-        return (
-          <MultiChart
-            key={`${metricA.key}-${metricB.key}`} // Unique key combining metrics
-            snapshotA={metricsSnapshots} // All snapshots
-            snapshotB={snapshots} // All metricsSnapshots
-            metricA={metricA.key}
-            metricB={metricB.key}
-            labelA={metricA.label}
-            labelB={metricB.label}
-            tickerA={token?.ticker ?? ""}
-            tickerB={token?.ticker ?? ""}
-          />
-        );
-        }
-      });
-    })}
-  </div>
-)}
+      {snapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <h2 className="text-xl font-bold col-span-2 mt-4">
+            Metric Correlations
+          </h2>
+          {metrics.map((metricA, indexA) => {
+            return metrics.map((metricB, indexB) => {
+              if (indexA < indexB) {
+                return (
+                  <MultiChart
+                    key={`${metricA.key}-${metricB.key}`}
+                    snapshotA={snapshots}
+                    snapshotB={snapshots}
+                    metricA={metricA.key}
+                    metricB={metricB.key}
+                    labelA={metricA.label}
+                    labelB={metricB.label}
+                    tickerA={token?.ticker ?? ""}
+                    tickerB={token?.ticker ?? ""}
+                  />
+                );
+              }
+              return null;
+            });
+          })}
+        </div>
+      )}
 
+      {metricsSnapshots.length > 0 && snapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          {tokenMetrics.map((metricA, indexA) => {
+            return metrics.map((metricB, indexB) => {
+              if (indexA < indexB) {
+                return (
+                  <MultiChart
+                    key={`${metricA.key}-${metricB.key}`} // Unique key combining metrics
+                    snapshotA={metricsSnapshots} // All snapshots
+                    snapshotB={snapshots} // All metricsSnapshots
+                    metricA={metricA.key}
+                    metricB={metricB.key}
+                    labelA={metricA.label}
+                    labelB={metricB.label}
+                    tickerA={token?.ticker ?? ""}
+                    tickerB={token?.ticker ?? ""}
+                  />
+                );
+              }
+            });
+          })}
+        </div>
+      )}
 
       {metricsSnapshots.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-          <h2 className="text-xl font-bold col-span-2 mt-4">
-            Correlations
-          </h2>
           {tokenMetrics.map((metricA, indexA) => {
             return tokenMetrics.map((metricB, indexB) => {
               if (indexA < indexB) {

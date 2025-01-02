@@ -12,7 +12,7 @@ import {
 } from "chart.js";
 import type { Chart } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
-import { Line } from "react-chartjs-2";
+import { Scatter } from "react-chartjs-2";
 import type { TokenDetails } from "@/types/TokenDetails";
 import type { TokenMetrics, HolderDistribution } from "@/types/TokenMetrics";
 
@@ -52,7 +52,7 @@ ChartJS.register(
 const zoomOptions = {
   pan: {
     enabled: true,
-    mode: "xy" as const, 
+    mode: "xy" as const,
   },
   zoom: {
     wheel: {
@@ -61,7 +61,7 @@ const zoomOptions = {
     pinch: {
       enabled: true,
     },
-    mode: "y" as const, 
+    mode: "y" as const,
   },
 };
 
@@ -73,10 +73,9 @@ export default function MultiChart({
   labelA,
   tickerA,
   labelB,
-  tickerB,
 }: MetricsChartProps) {
   const chartRef = useRef<Chart<
-    "line",
+    "scatter",
     (number | [number, number] | { x: number; y: number } | null)[],
     unknown
   > | null>(null);
@@ -128,34 +127,44 @@ export default function MultiChart({
     return null;
   }
 
-  const labelsA = snapshotA.map((snapshot) =>
-    new Date(snapshot.createdAt).toLocaleDateString()
-  );
+  const maxLength = Math.max(snapshotA.length, snapshotB.length);
 
-  const labelsB = snapshotB.map((snapshot) =>
-    new Date(snapshot.createdAt).toLocaleDateString()
-  );
+  const dataA = Array.from({ length: maxLength }, (_, index) => {
+    const value = index < snapshotA.length ? formatValue(getValue(snapshotA[index], metricA)) : null;
+    return value !== null ? value : 0; // Fallback to 0 if value is null
+  });
+  
+  const dataB = Array.from({ length: maxLength }, (_, index) => {
+    const value = index < snapshotB.length ? formatValue(getValue(snapshotB[index], metricB)) : null;
+    return value !== null ? value : 0; // Fallback to 0 if value is null
+  });
+  
+  const chartPoints = dataA.map((xValue, index) => ({
+    x: xValue, // Already a number
+    y: dataB[index], // Already a number
+  }));
 
   const chartData = {
-    labels: [...labelsA, ...labelsB],
+    labels: [`${tickerA.toString()} ${labelA.toString()}`],
     datasets: [
       {
-        label: `${tickerA} ${labelA}`,
-        data: snapshotA.map((snapshot) =>
-          formatValue(getValue(snapshot, metricA))
-        ),
-        borderColor: "white",
-        backgroundColor: "white",
-        tension: 0.1,
-      },
-      {
-        label: `${tickerB} ${labelB}`,
-        data: snapshotB.map((snapshot) =>
-          formatValue(getValue(snapshot, metricB))
-        ),
+        label: `${tickerA.toString()} ${labelA.toString()}`,
+        data: chartPoints,
         borderColor: "rgb(75, 192, 192)",
         backgroundColor: "rgba(75, 192, 192, 0.5)",
         tension: 0.1,
+        type: "scatter" as const,
+      },
+      {
+        label: "Regression Line", // Label for the line
+        type: "line", // Explicitly define as a line
+        data: [
+          { x: Math.min(...dataA), y: Math.min(...dataB) },
+          { x: Math.max(...dataA), y: Math.max(...dataB) },
+        ], // Define start and end points for the line
+        borderColor: "rgb(75, 192, 192)",
+        borderWidth: 2,
+        fill: false, // Disable fill for the line
       },
     ],
   };
@@ -174,58 +183,9 @@ export default function MultiChart({
       zoom: zoomOptions,
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (tickValue: number | string) {
-            const value = Number(tickValue);
-
-            // Format metricA
-            let formattedMetricA = "";
-            if (
-              metricA.startsWith("holderDistribution.") ||
-              metricA === "holdersToOpenAccountsRatio"
-            ) {
-              formattedMetricA = value.toLocaleString() + "%";
-            } else if (metricA === "hhi") {
-              formattedMetricA = value.toLocaleString();
-            } else if (metricA === "medianHolder") {
-              formattedMetricA = "#" + value.toLocaleString();
-            } else if (
-              metricA === "marketCap" ||
-              metricA === "marketCapPerHolder" ||
-              metricA === "marketCapPerHolderOver10"
-            ) {
-              formattedMetricA = "$" + value.toLocaleString();
-            } else {
-              formattedMetricA = value.toLocaleString();
-            }
-
-            // Format metricB
-            let formattedMetricB = "";
-            if (
-              metricB.startsWith("holderDistribution.") ||
-              metricB === "holdersToOpenAccountsRatio"
-            ) {
-              formattedMetricB = value.toLocaleString() + "%";
-            } else if (metricB === "hhi") {
-              formattedMetricB = value.toLocaleString();
-            } else if (metricB === "medianHolder") {
-              formattedMetricB = "#" + value.toLocaleString();
-            } else if (
-              metricB === "marketCap" ||
-              metricB === "marketCapPerHolder" ||
-              metricB === "marketCapPerHolderOver10"
-            ) {
-              formattedMetricB = "$" + value.toLocaleString();
-            } else {
-              formattedMetricB = value.toLocaleString();
-            }
-
-            // Return both metrics together
-            return `${formattedMetricA} / ${formattedMetricB}`;
-          },
-        },
+      x: {
+        type: "linear" as const,
+        position: "bottom" as const,
       },
     },
   };
@@ -257,8 +217,10 @@ export default function MultiChart({
   return (
     <div className="w-full relative h-[300px] p-4 border rounded-lg">
       <div className="absolute top-4 right-4 space-x-2 flex items-center bg-white/20 p-4 py-2 rounded-full border border-white z-100">
-        <button onClick={onResetZoom} className="text-[12px]">reset</button>
-        
+        <button onClick={onResetZoom} className="text-[12px]">
+          reset
+        </button>
+
         <button onClick={onZoomMinus}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -293,7 +255,9 @@ export default function MultiChart({
           </svg>
         </button>
       </div>
-      <Line ref={chartRef} options={options} data={chartData} />
+
+      {/* @ts-expect-error: I am not able to use line and scatter plot together, still trying to figure out how to fix this*/}
+      <Scatter ref={chartRef} options={options} data={chartData} />
     </div>
   );
 }
