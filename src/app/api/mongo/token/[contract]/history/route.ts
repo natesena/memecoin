@@ -7,7 +7,6 @@ export async function GET(
   context: { params: Promise<{ contract: string }> }
 ) {
   const { contract } = await context.params;
-  console.log("Contract:", contract);
 
   try {
     await connectToDatabase();

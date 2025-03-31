@@ -9,11 +9,13 @@ interface TokenHistoryEntry {
 
 export class TokenDatabase extends Dexie {
   tokenHistory!: Table<TokenHistoryEntry>;
+  searchCache!: Table<{ query: string; results: TokenDetails[]; timestamp: number }>;
 
   constructor() {
     super("TokenDatabase");
     this.version(1).stores({
       tokenHistory: "contract, timestamp",
+      searchCache: "query, timestamp"
     });
   }
 }

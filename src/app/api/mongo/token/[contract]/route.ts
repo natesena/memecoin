@@ -11,15 +11,13 @@ export async function GET(
   try {
     await connectToDatabase();
 
-    const tokenDetails = await TokenDetailsModel.findOne({
-      contract,
-    });
+    const tokenDetails = await TokenDetailsModel.findOne({ contract }).sort({ createdAt: -1 });
 
     if (!tokenDetails) {
       return NextResponse.json({ error: "Token not found" }, { status: 404 });
     }
 
-    return NextResponse.json(tokenDetails);
+    return NextResponse.json({ tokenDetails });
   } catch (error) {
     console.error("Error fetching token details:", error);
     return NextResponse.json(

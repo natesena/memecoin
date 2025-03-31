@@ -12,6 +12,7 @@ import {
   Tooltip,
   TimeScale,
 } from "chart.js";
+import { useRouter } from "next/navigation";
 
 ChartJS.register(
   CategoryScale,
@@ -47,6 +48,8 @@ interface TooltipContext {
 }
 
 const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
+  const router = useRouter();
+
   const maxValueForMetric =
     metrics[metrics.findIndex((m) => m.key === metric)]?.maxValue || 0;
   const [activeMaxValue, setActiveMaxValue] = useState<number>(
@@ -139,6 +142,7 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       data: token.snapshots.map((snapshot) => ({
         x: new Date(snapshot.createdAt).getTime(),
         y: Number(String(snapshot[metric]).replace(/[$,%]/g, "")),
+        contract: token.contract,
       })),
       borderColor: colors[index % colors.length],
       backgroundColor: colors[index % colors.length]
@@ -165,8 +169,8 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       },
       tooltip: {
         enabled: true,
-        mode: "dataset" as const, // This mode checks the closest dataset based on x-axis positioning.
-        intersect: false, // Allows the tooltip to appear when hovering over the line segment.
+        mode: "nearest" as const, // Show the tooltip for the closest point
+        intersect: false, // Allows the tooltip to show when hovering near the line
         callbacks: {
           label: (context: TooltipContext) => {
             const token = tokens[context.datasetIndex];
@@ -182,6 +186,11 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
       axis: "xy" as const, // This will help detect the line regardless of axis positioning.
       intersect: false, // Allows interaction with the line itself, not just points.
     },
+
+    onClick: (e, chartInstance) => {
+      const contract = chartInstance[0].element.$context.raw.contract;
+      router.replace(`/tokens/${contract}`);
+  },
     scales: {
       x: {
         type: "time" as const,
@@ -228,15 +237,16 @@ const AllTokensLine = ({ tokens, metric, label }: AllTokensLineProps) => {
     },
     maintainAspectRatio: false,
     hover: {
-      mode: "nearest" as const,
+      mode: "nearest" as const, // Focuses on the nearest point
       intersect: false,
     },
   };
-  console.log(metric);
+
   return (
     <div className="w-full h-[600px] p-4">
       <h1>{metric}</h1>
-      <Line data={chartData} options={options} />
+
+      <Line data={chartData} options={options}/>
     </div>
   );
 };

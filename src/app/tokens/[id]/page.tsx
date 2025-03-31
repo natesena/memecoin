@@ -1,19 +1,22 @@
 "use client";
+import Link from "next/link";
 import TokenDetails from "@/components/tokenDetails";
 import MetricsChart from "@/components/metricsChart";
 import { useParams } from "next/navigation";
 import { useTokens } from "@/context/TokenContext";
 import { useEffect, useState } from "react";
 import type { TokenDetails as TokenDetailsType } from "@/types/TokenDetails";
-import Link from "next/link";
-import { metrics } from "@/lib/metrics/metrics";
+import type { TokenMetrics } from "@/types/TokenMetrics";
+import { metrics, tokenMetrics } from "@/lib/metrics/metrics";
 import type { MetricKey } from "@/types/MetricKey";
+import MultiChart from "@/components/multiMetric";
 
 export default function DetailsPage() {
   const params = useParams();
   const tokenContract = params.id as string;
   const { tokens, setSelectedToken } = useTokens();
   const [snapshots, setSnapshots] = useState<TokenDetailsType[]>([]);
+  const [metricsSnapshots, setMetricsSnapshots] = useState<TokenMetrics[]>([]);
   const token = tokens.find((t) => t.contract === tokenContract);
 
   useEffect(() => {
@@ -24,20 +27,30 @@ export default function DetailsPage() {
   }, [tokenContract, tokens, setSelectedToken]);
 
   useEffect(() => {
-    async function fetchHistory() {
+    async function fetchData() {
       try {
-        const response = await fetch(
-          `/api/mongo/token/${tokenContract}/history`
-        );
-        if (!response.ok) throw new Error("Failed to fetch history");
-        const data = await response.json();
-        setSnapshots(data);
+        const [historyResponse, metricsResponse] = await Promise.all([
+          fetch(`/api/mongo/token/${tokenContract}/history`),
+          fetch(`/api/mongo/token/${tokenContract}/metrics`),
+        ]);
+
+        if (!historyResponse.ok || !metricsResponse.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const [historyData, metricsData] = await Promise.all([
+          historyResponse.json(),
+          metricsResponse.json(),
+        ]);
+
+        setSnapshots(historyData);
+        setMetricsSnapshots(metricsData);
       } catch (error) {
-        console.error("Error fetching token history:", error);
+        console.error("Error fetching data:", error);
       }
     }
 
-    fetchHistory();
+    fetchData();
   }, [tokenContract]);
 
   return (
@@ -73,6 +86,99 @@ export default function DetailsPage() {
               ticker={token?.ticker ?? ""}
             />
           ))}
+        </div>
+      )}
+      {metricsSnapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <h2 className="text-xl font-bold col-span-2 mt-4">
+            Advanced Metrics
+          </h2>
+          {tokenMetrics.map((metric) => (
+            <MetricsChart
+              key={metric.key}
+              snapshots={metricsSnapshots}
+              metric={metric.key}
+              label={metric.label}
+              ticker={token?.ticker ?? ""}
+            />
+          ))}
+        </div>
+      )}
+
+      {snapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <h2 className="text-xl font-bold col-span-2 mt-4">
+            Metric Correlations
+          </h2>
+          {metrics.map((metricA, indexA) => {
+            return metrics.map((metricB, indexB) => {
+              if (indexA < indexB) {
+                return (
+                  <MultiChart
+                    key={`${metricA.key}-${metricB.key}`}
+                    snapshotA={snapshots}
+                    snapshotB={snapshots}
+                    metricA={metricA.key}
+                    metricB={metricB.key}
+                    labelA={metricA.label}
+                    labelB={metricB.label}
+                    tickerA={token?.ticker ?? ""}
+                    tickerB={token?.ticker ?? ""}
+                  />
+                );
+              }
+              return null;
+            });
+          })}
+        </div>
+      )}
+
+      {metricsSnapshots.length > 0 && snapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          {tokenMetrics.map((metricA, indexA) => {
+            return metrics.map((metricB, indexB) => {
+              if (indexA < indexB) {
+                return (
+                  <MultiChart
+                    key={`${metricA.key}-${metricB.key}`} // Unique key combining metrics
+                    snapshotA={metricsSnapshots} // All snapshots
+                    snapshotB={snapshots} // All metricsSnapshots
+                    metricA={metricA.key}
+                    metricB={metricB.key}
+                    labelA={metricA.label}
+                    labelB={metricB.label}
+                    tickerA={token?.ticker ?? ""}
+                    tickerB={token?.ticker ?? ""}
+                  />
+                );
+              }
+            });
+          })}
+        </div>
+      )}
+
+      {metricsSnapshots.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          {tokenMetrics.map((metricA, indexA) => {
+            return tokenMetrics.map((metricB, indexB) => {
+              if (indexA < indexB) {
+                return (
+                  <MultiChart
+                    key={`${metricA.key}-${metricB.key}`}
+                    snapshotA={metricsSnapshots}
+                    snapshotB={metricsSnapshots}
+                    metricA={metricA.key}
+                    metricB={metricB.key}
+                    labelA={metricA.label}
+                    labelB={metricB.label}
+                    tickerA={token?.ticker ?? ""}
+                    tickerB={token?.ticker ?? ""}
+                  />
+                );
+              }
+              return null;
+            });
+          })}
         </div>
       )}
     </div>

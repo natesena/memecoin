@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import type { TokenDetails } from "@/types/TokenDetails";
+import type { TokenMetrics, HolderDistribution } from "@/types/TokenMetrics";
 
 ChartJS.register(
   CategoryScale,
@@ -23,25 +24,44 @@ ChartJS.register(
 );
 
 interface MetricsChartProps {
-  snapshots: TokenDetails[];
-  metric: keyof TokenDetails;
+  snapshots: TokenDetails[] | TokenMetrics[];
+  metric: string;
   label: string;
   ticker: string;
 }
 
-const MetricsChart = ({
+export default function MetricsChart({
   snapshots,
   metric,
   label,
   ticker,
-}: MetricsChartProps) => {
+}: MetricsChartProps) {
   const formatValue = (value: string | null | undefined) => {
-    if (!value) return 0;
-    // Remove currency symbol, commas, and percentage signs
+    if (!value) return null;
+    
+    // Remove currency symbol, commas, and percentage signs for other metrics
     const cleanValue = value.replace(/[$,%]/g, "");
-    // Convert to number
-    return parseFloat(cleanValue) || 0;
+    return parseFloat(cleanValue) || null;
   };
+
+  const getValue = (snapshot: TokenDetails | TokenMetrics, metric: string): string | null => {
+    if (metric.startsWith('holderDistribution.')) {
+      const key = metric.split('.')[1];
+      return (snapshot as TokenMetrics).holderDistribution?.[key as keyof HolderDistribution] || null;
+    }
+    
+    return ((snapshot as TokenDetails)[metric as keyof TokenDetails] || 
+            (snapshot as TokenMetrics)[metric as keyof TokenMetrics])?.toString() || null;
+  };
+
+  const hasValidData = snapshots.some(snapshot => {
+    const value = getValue(snapshot, metric);
+    return value !== null && value !== undefined && value !== '';
+  });
+
+  if (!hasValidData) {
+    return null;
+  }
 
   const chartData = {
     labels: snapshots.map((snapshot) =>
@@ -51,7 +71,7 @@ const MetricsChart = ({
       {
         label: `${ticker} ${label}`,
         data: snapshots.map((snapshot) =>
-          formatValue(snapshot[metric] as string)
+          formatValue(getValue(snapshot, metric))
         ),
         borderColor: "rgb(75, 192, 192)",
         backgroundColor: "rgba(75, 192, 192, 0.5)",
@@ -78,8 +98,12 @@ const MetricsChart = ({
         ticks: {
           callback: function (tickValue: number | string) {
             const value = Number(tickValue);
-            if (metric === "holdersToOpenAccountsRatio") {
+            if (metric.startsWith('holderDistribution.') || metric === "holdersToOpenAccountsRatio") {
               return value.toLocaleString() + "%";
+            } else if (metric === "hhi") {
+              return value.toLocaleString();
+            } else if (metric === "medianHolder") {
+              return "#" + value.toLocaleString();
             } else if (
               metric === "marketCap" ||
               metric === "marketCapPerHolder" ||
@@ -96,9 +120,7 @@ const MetricsChart = ({
 
   return (
     <div className="w-full h-[300px] p-4 border rounded-lg">
-      <Line data={chartData} options={options} />
+      <Line options={options} data={chartData} />
     </div>
   );
-};
-
-export default MetricsChart;
+}
